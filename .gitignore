@@ -6,3 +6,8 @@ autom4te.cache/
 #Ignore vi/vim swap file
 *.swp
 
+#Ignore Eclipse CDT files
+.cproject
+.project
+.settings/
+
