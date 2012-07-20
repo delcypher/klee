@@ -212,6 +212,18 @@ runtime, which is built on top of the uClibc C library.
     </div>
   </li>
 
+  <li><b>[Optional] Build devloper documentation</b>
+      <p>If you intend to develop KLEE you may find the developer documentation useful. KLEE uses <a href="http://www.doxygen.org">Doxygen</a> to generate this documentation
+         from the source code. It is available <a href="http://test.minormatter.com/~ddunbar/klee-doxygen/index.html">here</a>, however you may wish to generate the latest
+         documentation from your own source tree. To do this first check you have Doxygen installed and then run the following.
+     </p>
+     <div class="instr">
+      $ cd path/to/build-dir <br/>
+      $ make doxygen<br/>
+     </div>
+    <p><b>NOTE:</b> If you did an &quot;in source&quot; build then <tt>path/to/build-dir</tt> will be the root of KLEE's source directory.</p>
+     <p> The built documentation will built in the build directory in the following path docs/doxygen/html </p>
+  </li>
 
   <li>You're ready to go!  Go to the <a href="Tutorials.html">Tutorials</a> page
   to try KLEE.</li>
