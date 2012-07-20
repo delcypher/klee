@@ -181,11 +181,21 @@ runtime, which is built on top of the uClibc C library.
   </li>
   
   <li><b>Configure KLEE:</b>
-    <p>From the KLEE source directory, run:</p>
+    <p>KLEE supports &quot;in source&quot; and &quot;out of source&quot; builds. If you intend to develop on KLEE it is advised you do an &quot;out of source&quot; build as this allow you to 
+       keep your source tree clean. It also means you can support multiple build configurations (e.g. Release+Asserts and Debug+Asserts) from a single source
+       directory.</p>
+    <p>If you wish to do an &quot;in source&quot; build then run:</p>
     <div class="instr">
+      $ cd path/to/source-dir <br/>
       $ ./configure --with-llvm=<i>path/to/llvm</i> --with-stp=<i>path/to/stp/install</i> --with-uclibc=<i>path/to/klee-uclibc</i> --enable-posix-runtime
     </div>
     
+    <p>If you wish to do an &quot;out of source&quot; build then run:</p>
+    <div class="instr">
+      $ mkdir path/to/build-dir <br/>
+      $ cd path/to/build-dir <br/>
+      $ path/to/source-dir/configure --with-llvm=<i>path/to/llvm</i> --with-stp=<i>path/to/stp/install</i> --with-uclibc=<i>path/to/klee-uclibc</i> --enable-posix-runtime
+    </div>
     <p><b>NOTE:</b> If you skipped step 3, simply remove the <tt>--with-uclibc</tt> and <tt>--enable-posix-runtime options</tt>. </p>
   </li>
 
@@ -201,6 +211,7 @@ runtime, which is built on top of the uClibc C library.
       $ make unittests<br/>
     </div>
   </li>
+
 
   <li>You're ready to go!  Go to the <a href="Tutorials.html">Tutorials</a> page
   to try KLEE.</li>
