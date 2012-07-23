@@ -3319,17 +3319,38 @@ unsigned Executor::getSymbolicPathStreamID(const ExecutionState &state) {
 
 void Executor::getConstraintLog(const ExecutionState &state,
                                 std::string &res,
-                                bool asCVC) {
-  if (asCVC) {
-    Query query(state.constraints, ConstantExpr::alloc(0, Expr::Bool));
-    char *log = solver->stpSolver->getConstraintLog(query);
-    res = std::string(log);
-    free(log);
-  } else {
-    std::ostringstream info;
-    ExprPPrinter::printConstraints(info, state.constraints);
-    res = info.str();    
+                                Interpreter::LogType logFormat) {
+
+  std::ostringstream info;
+
+  switch(logFormat)
+  {
+  case STP:
+  {
+	  Query query(state.constraints, ConstantExpr::alloc(0, Expr::Bool));
+	  char *log = solver->stpSolver->getConstraintLog(query);
+	  res = std::string(log);
+	  free(log);
   }
+	  break;
+
+  case KQUERY:
+  {
+	  std::ostringstream info;
+	  ExprPPrinter::printConstraints(info, state.constraints);
+	  res = info.str();
+  }
+	  break;
+
+  case SMTLIB2:
+	  //TODO
+	  res="TO DO!";
+	  break;
+
+  default:
+	  klee_warning("Executor::getConstraintLog() : Log format not supported!");
+  }
+
 }
 
 bool Executor::getSymbolicSolution(const ExecutionState &state,
