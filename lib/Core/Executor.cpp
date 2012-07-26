@@ -80,6 +80,8 @@
 #include <errno.h>
 #include <cxxabi.h>
 
+#include "klee/ExprSMTLIBPrinter.h"
+
 using namespace llvm;
 using namespace klee;
 
@@ -3321,7 +3323,7 @@ void Executor::getConstraintLog(const ExecutionState &state,
                                 std::string &res,
                                 Interpreter::LogType logFormat) {
 
-  std::ostringstream info;
+
 
   switch(logFormat)
   {
@@ -3343,8 +3345,11 @@ void Executor::getConstraintLog(const ExecutionState &state,
 	  break;
 
   case SMTLIB2:
-	  //TODO
-	  res="TO DO!";
+  {
+	  std::ostringstream info;
+	  ExprSMTLIBPrinter printer(info,state.constraints);
+	  res = info.str();
+  }
 	  break;
 
   default:
