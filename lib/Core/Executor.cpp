@@ -3348,6 +3348,7 @@ void Executor::getConstraintLog(const ExecutionState &state,
   {
 	  std::ostringstream info;
 	  ExprSMTLIBPrinter printer(info,state.constraints);
+	  printer.generateOutput();
 	  res = info.str();
   }
 	  break;
