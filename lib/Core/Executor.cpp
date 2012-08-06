@@ -80,7 +80,7 @@
 #include <errno.h>
 #include <cxxabi.h>
 
-#include "klee/ExprSMTLIBPrinter.h"
+#include "klee/util/ExprSMTLIBPrinter.h"
 
 using namespace llvm;
 using namespace klee;

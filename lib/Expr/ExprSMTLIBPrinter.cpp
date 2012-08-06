@@ -3,7 +3,7 @@
 #include "../Core/Common.h"
 
 #include "llvm/Support/Casting.h"
-#include "klee/ExprSMTLIBPrinter.h"
+#include "klee/util/ExprSMTLIBPrinter.h"
 
 using namespace std;
 
