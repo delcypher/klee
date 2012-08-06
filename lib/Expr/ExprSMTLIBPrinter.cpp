@@ -9,7 +9,57 @@ using namespace std;
 
 namespace klee
 {
-	void ExprSMTLIBPrinter::generateOutput()
+
+void ExprSMTLIBPrinter::pushIndent()
+{
+	indent.push(p.pos);
+}
+
+void ExprSMTLIBPrinter::popIndent()
+{
+	indent.pop();
+}
+
+void ExprSMTLIBPrinter::breakLine()
+{
+	p.breakLine(indent.top());
+}
+
+bool ExprSMTLIBPrinter::setConstantDisplayMode(ConstantDisplayMode cdm)
+{
+	if(cdm > DECIMAL)
+		return false;
+
+	this->cdm = cdm;
+	return true;
+}
+
+void ExprSMTLIBPrinter::printConstant(const ref<ConstantExpr>& e)
+{
+	switch(cdm)
+	{
+	case BINARY:
+		//TODO
+	break;
+
+	case HEX:
+		//TODO
+	break;
+
+	case DECIMAL:
+	{
+		std::string decimalValue;
+		e->toString(decimalValue);
+		o << "(_ bv" << decimalValue << " " << e->getWidth() << ")";
+	}
+	break;
+
+	default:
+		klee_warning("ExprSMTLIBPrinter::printConstant() : Unexpected Constant display mode");
+	}
+}
+
+void ExprSMTLIBPrinter::generateOutput()
 	{
 		//perform scan of all expressions
 		for(ConstraintManager::const_iterator i= cm.begin(); i != cm.end(); i++)
@@ -21,6 +71,7 @@ namespace klee
 		printArrayDeclarations();
 		printConstraints();
 		printAction();
+		printExit();
 	}
 
 	void ExprSMTLIBPrinter::printSetLogic(ExprSMTLIBPrinter::Logics logic)
@@ -53,7 +104,40 @@ namespace klee
 		{
 			o << "; Constant Array Definitions" << endl;
 
-			//TODO
+			const Array* array;
+
+			//loop over found arrays
+			for(set<const Array*>::iterator it = usedArrays.begin(); it != usedArrays.end(); it++)
+			{
+				array= *it;
+				int byteIndex=0;
+				if(array->isConstantArray())
+				{
+					/*loop over elements in the array and generate an assert statement
+					  for each one
+					 */
+					for(vector< ref<ConstantExpr> >::const_iterator ce= array->constantValues.begin();
+							ce != array->constantValues.end(); ce++, byteIndex++)
+					{
+						p << "(assert (";
+						pushIndent();
+						p <<           "= ";
+						pushIndent(); breakLine();
+
+						p << "(select " << array->name << " (_ bv" << byteIndex << " " << array->getDomain() << ") )";
+						breakLine();
+						printConstant((*ce));
+
+						popIndent(); breakLine();
+						p << ")";
+						popIndent(); breakLine();
+						p << ")";
+
+						breakLine();
+
+					}
+				}
+			}
 		}
 	}
 
@@ -99,6 +183,7 @@ namespace klee
 			scan(ep->getKid(i));
 	}
 
+
 	void ExprSMTLIBPrinter::scanUpdates(const UpdateNode* un)
 	{
 		while(un != NULL)
@@ -109,5 +194,14 @@ namespace klee
 		}
 	}
 
+
+	void ExprSMTLIBPrinter::printExit()
+	{
+		o << "(exit)" << endl;
+	}
+
+
 }
+
+
 

@@ -4,8 +4,10 @@
 #include <ostream>
 #include <string>
 #include <set>
+#include <stack>
 #include <klee/Constraints.h>
 #include <klee/Expr.h>
+#include <klee/util/PrintContext.h>
 
 namespace klee {
 
@@ -19,16 +21,6 @@ public:
 
 	///Contains the arrays found during scans
 	std::set<const Array*> usedArrays;
-
-private:
-	///Indicates if there were any constant arrays founds during a scan()
-	bool haveConstantArray;
-
-public:
-	ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM) :
-		o(output), cm(constraintM), usedArrays(), haveConstantArray(false) {}
-
-	void generateOutput();
 
 	enum Logics
 	{
@@ -51,14 +43,68 @@ protected:
 	///Print the S-expression(s) to ask for satisfiability, get-value etc...
 	virtual void printAction();
 
+	virtual void printExit();
+
+	///Print a Constant in the format specified by the current "Constant Display Mode"
+	void printConstant(const ref<ConstantExpr>& e);
+
 	///Scan Expression recursively for
 	/// * Arrays
 	void scan(const ref<Expr>& e);
+
+	///Record the current indent level onto indent stack
+	void pushIndent();
+
+	///Pop the current indent level off the stack
+	void popIndent();
+
+	///Insert a line break and pad next line with indent
+	void breakLine();
+
+	///Helper printer class
+	PrintContext p;
+
+
 
 private:
 
 	///Helper function for scan() that scans the expressions of an update node
 	void scanUpdates(const UpdateNode* un);
+
+
+	///Indent stack used to keep track off the indentation levels whilst printing expressions
+	std::stack<unsigned int> indent;
+
+	///Indicates if there were any constant arrays founds during a scan()
+	bool haveConstantArray;
+
+public:
+
+	enum ConstantDisplayMode
+	{
+		BINARY,
+		HEX,
+		DECIMAL
+	};
+
+	ConstantDisplayMode cdm;
+
+	///Allows the way Constant bitvectors are printed.
+	/// \return true if setting the mode was successful
+	bool setConstantDisplayMode(ConstantDisplayMode cdm);
+
+	ConstantDisplayMode getConstantDisplayMode() { return cdm;}
+
+	ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM, ConstantDisplayMode m = DECIMAL) :
+		o(output), cm(constraintM), usedArrays(), p(output), indent(), haveConstantArray(false)
+	{
+		indent.push(0); //Initial indent should be zero
+		setConstantDisplayMode(m);
+	}
+
+	void generateOutput();
+
+
 
 
 };
