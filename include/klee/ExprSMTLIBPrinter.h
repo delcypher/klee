@@ -3,7 +3,9 @@
 
 #include <ostream>
 #include <string>
+#include <set>
 #include <klee/Constraints.h>
+#include <klee/Expr.h>
 
 namespace klee {
 
@@ -15,7 +17,16 @@ public:
 	std::ostream& o;
 	const ConstraintManager& cm;
 
-	ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM) : o(output), cm(constraintM) {}
+	///Contains the arrays found during scans
+	std::set<const Array*> usedArrays;
+
+private:
+	///Indicates if there were any constant arrays founds during a scan()
+	bool haveConstantArray;
+
+public:
+	ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM) :
+		o(output), cm(constraintM), usedArrays(), haveConstantArray(false) {}
 
 	void generateOutput();
 
@@ -39,6 +50,16 @@ protected:
 
 	///Print the S-expression(s) to ask for satisfiability, get-value etc...
 	virtual void printAction();
+
+	///Scan Expression recursively for
+	/// * Arrays
+	void scan(const ref<Expr>& e);
+
+private:
+
+	///Helper function for scan() that scans the expressions of an update node
+	void scanUpdates(const UpdateNode* un);
+
 
 };
 
