@@ -1,7 +1,7 @@
 #ifndef KLEE_EXPRSMTLIBPRINTER_H
 #define KLEE_EXPRSMTLIBPRINTER_H
 
-#include <sstream>
+#include <ostream>
 #include <string>
 #include <klee/Constraints.h>
 
@@ -12,10 +12,10 @@ class ExprSMTLIBPrinter
 {
 public:
 	///Output stream to write to
-	std::ostringstream& o;
+	std::ostream& o;
 	const ConstraintManager& cm;
 
-	ExprSMTLIBPrinter(std::ostringstream& output, const ConstraintManager& constraintM) : o(output), cm(constraintM) {}
+	ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM) : o(output), cm(constraintM) {}
 
 	void generateOutput();
 
