@@ -4,22 +4,36 @@
 #include <ostream>
 #include <sstream>
 #include <string>
+#include <stack>
 #include <iomanip>
 
-/// PrintContext - Helper class for storing extra information for
-/// the pretty printer.
+/// PrintContext - Helper class for pretty printing.
+/// It provides a basic wrapper around std::ostream that keeps track of
+/// how many characters have been used on the current line.
+///
+/// It also provides an optional way keeping track of the various levels of indentation
+/// by using a stack.
+/// \sa breakLineI() , \sa pushIndent(), \sa popIndent()
 class PrintContext {
 private:
   std::ostream &os;
   std::stringstream ss;
   std::string newline;
 
+  ///This is used to keep track of the stack of indentations used by
+  /// \sa breakLineI()
+  /// \sa pushIndent()
+  /// \sa popIndent()
+  std::stack<unsigned int> indentStack;
+
 public:
   /// Number of characters on the current line.
   unsigned pos;
 
-public:
-  PrintContext(std::ostream &_os) : os(_os), newline("\n"), pos(0) {}
+  PrintContext(std::ostream &_os) : os(_os), newline("\n"), indentStack(), pos()
+  {
+	  indentStack.push(pos);
+  }
 
   void setNewline(const std::string &_newline) {
     newline = _newline;
@@ -30,6 +44,24 @@ public:
     if (indent)
       os << std::setw(indent) << ' ';
     pos = indent;
+  }
+
+  ///Break line using the indent on the top of the indent stack
+  void breakLineI()
+  {
+	  breakLine(indentStack.top());
+  }
+
+  ///Add the current position on the line to the top of the indent stack
+  void pushIndent()
+  {
+	  indentStack.push(pos);
+  }
+
+  ///Pop the top off the indent stack
+  void popIndent()
+  {
+	  indentStack.pop();
   }
 
   /// write - Output a string to the stream and update the
@@ -46,6 +78,7 @@ public:
     write(ss.str());
     return *this;
   }
+
 };
 
 
