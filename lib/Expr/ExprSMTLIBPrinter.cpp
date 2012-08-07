@@ -30,25 +30,9 @@ namespace klee
 {
 
 ExprSMTLIBPrinter::ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM) :
-	o(output), cm(constraintM), usedArrays(), p(output), indent(), haveConstantArray(false)
+	o(output), cm(constraintM), usedArrays(), p(output), haveConstantArray(false)
 {
-	indent.push(0); //Initial indent should be zero
 	setConstantDisplayMode(argConstantDisplayMode);
-}
-
-void ExprSMTLIBPrinter::pushIndent()
-{
-	indent.push(p.pos);
-}
-
-void ExprSMTLIBPrinter::popIndent()
-{
-	indent.pop();
-}
-
-void ExprSMTLIBPrinter::breakLine()
-{
-	p.breakLine(indent.top());
 }
 
 bool ExprSMTLIBPrinter::setConstantDisplayMode(ConstantDisplayMode cdm)
@@ -168,20 +152,20 @@ void ExprSMTLIBPrinter::generateOutput()
 							ce != array->constantValues.end(); ce++, byteIndex++)
 					{
 						p << "(assert (";
-						pushIndent();
+						p.pushIndent();
 						p <<           "= ";
-						pushIndent(); breakLine();
+						p.pushIndent().breakLineI();
 
 						p << "(select " << array->name << " (_ bv" << byteIndex << " " << array->getDomain() << ") )";
-						breakLine();
+						p.breakLineI();
 						printConstant((*ce));
 
-						popIndent(); breakLine();
+						p.popIndent().breakLineI();
 						p << ")";
-						popIndent(); breakLine();
+						p.popIndent().breakLineI();
 						p << ")";
 
-						breakLine();
+						p.breakLineI();
 
 					}
 				}

@@ -52,15 +52,6 @@ protected:
 	/// * Arrays
 	void scan(const ref<Expr>& e);
 
-	///Record the current indent level onto indent stack
-	void pushIndent();
-
-	///Pop the current indent level off the stack
-	void popIndent();
-
-	///Insert a line break and pad next line with indent
-	void breakLine();
-
 	///Helper printer class
 	PrintContext p;
 
@@ -71,9 +62,6 @@ private:
 	///Helper function for scan() that scans the expressions of an update node
 	void scanUpdates(const UpdateNode* un);
 
-
-	///Indent stack used to keep track off the indentation levels whilst printing expressions
-	std::stack<unsigned int> indent;
 
 	///Indicates if there were any constant arrays founds during a scan()
 	bool haveConstantArray;
