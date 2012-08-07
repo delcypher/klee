@@ -47,21 +47,27 @@ public:
   }
 
   ///Break line using the indent on the top of the indent stack
-  void breakLineI()
+  /// \return The PrintContext object so the method is chainable
+  PrintContext& breakLineI()
   {
 	  breakLine(indentStack.top());
+	  return *this;
   }
 
   ///Add the current position on the line to the top of the indent stack
-  void pushIndent()
+  /// \return The PrintContext object so the method is chainable
+  PrintContext& pushIndent()
   {
 	  indentStack.push(pos);
+	  return *this;
   }
 
   ///Pop the top off the indent stack
-  void popIndent()
+  /// \return The PrintContext object so the method is chainable
+  PrintContext& popIndent()
   {
 	  indentStack.pop();
+	  return *this;
   }
 
   /// write - Output a string to the stream and update the
