@@ -184,9 +184,25 @@ void ExprSMTLIBPrinter::printConstant(const ref<ConstantExpr>& e)
 
 	void ExprSMTLIBPrinter::printCastExpr(const ref<CastExpr>& e)
 	{
+		/* sign_extend and zero_extend behave slightly unusually in SMTLIBv2
+		 * instead of specifying of what bit-width we would like to extend to
+		 * we specify how many bits to add to the child expression
+		 *
+		 * e.g
+		 * ((_ sign_extend 64) (_ bv5 32))
+		 *
+		 * gives a (_ BitVec 96) instead of (_ BitVec 64)
+		 *
+		 * So we must work out how many bits we need to add.
+		 *
+		 * (e->width) is the desired number of bits
+		 * (e->src->getWidth()) is the number of bits in the child
+		 */
+		unsigned int numExtraBits= (e->width) - (e->src->getWidth());
+
 		p.pushIndent();
 		p << "((_ " << getSMTLIBKeyword(e->getKind()) << " " <<
-				e->width << ") ";
+				numExtraBits << ") ";
 
 		p.pushIndent().breakLineI();
 
