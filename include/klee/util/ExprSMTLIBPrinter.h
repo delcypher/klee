@@ -95,12 +95,7 @@ public:
 
 	ConstantDisplayMode getConstantDisplayMode() { return cdm;}
 
-	ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM, ConstantDisplayMode m = DECIMAL) :
-		o(output), cm(constraintM), usedArrays(), p(output), indent(), haveConstantArray(false)
-	{
-		indent.push(0); //Initial indent should be zero
-		setConstantDisplayMode(m);
-	}
+	ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM);
 
 	void generateOutput();
 
