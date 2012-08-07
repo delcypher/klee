@@ -46,6 +46,22 @@ bool ExprSMTLIBPrinter::setConstantDisplayMode(ConstantDisplayMode cdm)
 
 void ExprSMTLIBPrinter::printConstant(const ref<ConstantExpr>& e)
 {
+	/* Handle simple boolean constants */
+
+	if(e->isTrue())
+	{
+		p << "true";
+		return;
+	}
+
+	if(e->isFalse())
+	{
+		p << "false";
+		return;
+	}
+
+	/* Handle bitvector constants */
+
 	std::string value;
 
 	/* SMTLIBv2 deduces the bit-width (should be 8-bits in our case)
@@ -59,30 +75,30 @@ void ExprSMTLIBPrinter::printConstant(const ref<ConstantExpr>& e)
 	{
 	case BINARY:
 		e->toString(value,2);
-		o << "#b";
+		p << "#b";
 
 		zeroPad = e->getWidth() - value.length();
 
 		for(unsigned int count=0; count < zeroPad; count++)
-			o << "0";
+			p << "0";
 
-		o << value ;
+		p << value ;
 	break;
 
 	case HEX:
 		e->toString(value,16);
-		o << "#x";
+		p << "#x";
 
 		zeroPad =  (e->getWidth() / 4) - value.length();
 		for(unsigned int count=0; count < zeroPad; count++)
-			o << "0";
+			p << "0";
 
-		o << value ;
+		p << value ;
 	break;
 
 	case DECIMAL:
 		e->toString(value,10);
-		o << "(_ bv" << value<< " " << e->getWidth() << ")";
+		p << "(_ bv" << value<< " " << e->getWidth() << ")";
 
 	break;
 
@@ -91,7 +107,209 @@ void ExprSMTLIBPrinter::printConstant(const ref<ConstantExpr>& e)
 	}
 }
 
-void ExprSMTLIBPrinter::generateOutput()
+	void ExprSMTLIBPrinter::printExpression(const ref<Expr>& e)
+	{
+		switch(e->getKind())
+		{
+			case Expr::Constant:
+				printConstant(cast<ConstantExpr>(e));
+				return; //base case
+
+			case Expr::NotOptimized:
+				//skip to child
+				printExpression(e->getKid(0));
+				return;
+
+			case Expr::Read:
+				printReadExpr(cast<ReadExpr>(e));
+				return;
+
+			case Expr::Extract:
+				printExtractExpr(cast<ExtractExpr>(e));
+				return;
+
+			case Expr::SExt:
+			case Expr::ZExt:
+				printCastExpr(cast<CastExpr>(e));
+				return;
+
+			case Expr::Ne:
+				printNotEqualExpr(cast<NeExpr>(e));
+				return;
+
+			default:
+				/* All other expression types can be handled in a generic way */
+				printOtherExpr(e);
+				return;
+		}
+	}
+
+	void ExprSMTLIBPrinter::printReadExpr(const ref<ReadExpr>& e)
+	{
+		p.pushIndent();
+		p << "(" << getSMTLIBKeyword(e->getKind()) << " ";
+		p.pushIndent();
+
+		p.breakLineI();
+		//print array with updates recursively
+		printUpdatesAndArray(e->updates.head,e->updates.root);
+
+		//print index
+		p.breakLineI();
+		printExpression(e->index);
+
+		p.popIndent().breakLineI();
+		p << ")";
+		p.popIndent();
+	}
+
+	void ExprSMTLIBPrinter::printExtractExpr(const ref<ExtractExpr>& e)
+	{
+		p.pushIndent();
+
+		unsigned int lowIndex= e->offset;
+		unsigned int highIndex= lowIndex + e->width;
+
+		p << "((_ " << getSMTLIBKeyword(e->getKind()) << " " << highIndex << "  " << lowIndex << ") ";
+		p.pushIndent();
+
+		//recurse
+		printExpression(e->getKid(0));
+
+		p.popIndent().breakLineI();
+		p << ")";
+		p.popIndent();
+
+	}
+
+	void ExprSMTLIBPrinter::printCastExpr(const ref<CastExpr>& e)
+	{
+		p.pushIndent();
+		p << "((_ " << getSMTLIBKeyword(e->getKind()) << " " <<
+				e->width << ") ";
+
+		p.pushIndent().breakLineI();
+
+		//recurse
+		printExpression(e->src);
+
+		p.popIndent().breakLineI();
+
+		p << ")";
+		p.popIndent();
+	}
+
+	void ExprSMTLIBPrinter::printNotEqualExpr(const ref<NeExpr>& e)
+	{
+		p.pushIndent();
+		p << "(not (" << getSMTLIBKeyword(Expr::Eq) << " ";
+
+		p.pushIndent();
+		printExpression(e->getKid(0));
+		p.breakLineI();
+		printExpression(e->getKid(1));
+		p.popIndent();
+
+		p << ")";
+		p.popIndent();
+	}
+
+	void ExprSMTLIBPrinter::printOtherExpr(const ref<Expr>& e)
+	{
+		p.pushIndent();
+		p << "(" << getSMTLIBKeyword(e->getKind()) << " ";
+		p.pushIndent();
+
+		//loop over children and recurse into each
+		for(int i=0; i < e->getNumKids(); i++)
+		{
+			p.breakLineI();
+			printExpression(e->getKid(i));
+		}
+
+		p.popIndent().breakLineI();
+		p << ")";
+		p.popIndent();
+	}
+
+	const char* ExprSMTLIBPrinter::getSMTLIBKeyword(Expr::Kind k)
+	{
+		switch(k)
+		{
+			case Expr::Read: return "select";
+			case Expr::Select: return "ite";
+			case Expr::Concat: return "concat";
+			case Expr::Extract: return "extract";
+			case Expr::ZExt: return "zero_extend";
+			case Expr::SExt: return "sign_extend";
+
+			case Expr::Add: return "bvadd";
+			case Expr::Sub: return "bvneg";
+			case Expr::Mul: return "bvmul";
+			case Expr::UDiv: return "budiv";
+			case Expr::SDiv: return "bsdiv";
+			case Expr::URem: return "burem";
+			case Expr::SRem: return "bsrem";
+
+			case Expr::Not: return "bvnot";
+			case Expr::And: return "bvand";
+			case Expr::Or:  return "bvor";
+			case Expr::Xor: return "bvxor";
+			case Expr::Shl: return "bvshl";
+			case Expr::LShr: return "bvlshr";
+			case Expr::AShr: return "bvashr";
+
+			case Expr::Eq: return "=";
+
+			//Not Equal does not exist directly in SMTLIBv2
+
+			case Expr::Ult: return "bvult";
+			case Expr::Ule: return "bvule";
+			case Expr::Ugt: return "bvugt";
+			case Expr::Uge: return "bvuge";
+
+			case Expr::Slt: return "bvslt";
+			case Expr::Sle: return "bvsle";
+			case Expr::Sgt: return "bvsgt";
+			case Expr::Sge: return "bvsge";
+
+			default:
+				return "<error>";
+
+		}
+	}
+
+	void ExprSMTLIBPrinter::printUpdatesAndArray(const UpdateNode* un, const Array* root)
+	{
+		if(un!=NULL)
+		{
+			p << "(store ";
+			p.pushIndent();
+
+			//recurse to get the array or update that this store operations applies to
+			printUpdatesAndArray(un->next,root);
+
+			p.breakLineI();
+
+			//print index
+			printExpression(un->index);
+			p.breakLineI();
+
+			//print value that is assigned to this index of the array
+			printExpression(un->value);
+
+			p.popIndent().breakLineI();
+			p << ")";
+		}
+		else
+		{
+			//The base case of the recursion
+			p << root->name;
+		}
+
+	}
+
+	void ExprSMTLIBPrinter::generateOutput()
 	{
 		//perform scan of all expressions
 		for(ConstraintManager::const_iterator i= cm.begin(); i != cm.end(); i++)
@@ -175,6 +393,19 @@ void ExprSMTLIBPrinter::generateOutput()
 
 	void ExprSMTLIBPrinter::printConstraints()
 	{
+		o << "; Constraints" << endl;
+		//Generate assert statements for each constraint
+		for(ConstraintManager::const_iterator i= cm.begin(); i != cm.end(); i++)
+		{
+			p << "(assert ";
+			p.pushIndent().breakLineI();
+
+			//recurse into Expression
+			printExpression(*i);
+
+			p.popIndent().breakLineI();
+			p << ")"; p.breakLineI();
+		}
 
 	}
 

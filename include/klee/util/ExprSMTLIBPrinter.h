@@ -48,9 +48,24 @@ protected:
 	///Print a Constant in the format specified by the current "Constant Display Mode"
 	void printConstant(const ref<ConstantExpr>& e);
 
+	///Recursively print expression
+	virtual void printExpression(const ref<Expr>& e);
+
 	///Scan Expression recursively for
 	/// * Arrays
 	void scan(const ref<Expr>& e);
+
+	virtual void printReadExpr(const ref<ReadExpr>& e);
+	virtual void printExtractExpr(const ref<ExtractExpr>& e);
+	virtual void printCastExpr(const ref<CastExpr>& e);
+	virtual void printNotEqualExpr(const ref<NeExpr>& e);
+	virtual void printOtherExpr(const ref<Expr>& e);
+
+	///Recursively prints updatesNodes
+	virtual void printUpdatesAndArray(const UpdateNode* un, const Array* root);
+
+	virtual const char* getSMTLIBKeyword(Expr::Kind k);
+
 
 	///Helper printer class
 	PrintContext p;
@@ -65,6 +80,7 @@ private:
 
 	///Indicates if there were any constant arrays founds during a scan()
 	bool haveConstantArray;
+
 
 public:
 
