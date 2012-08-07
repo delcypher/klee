@@ -168,7 +168,7 @@ void ExprSMTLIBPrinter::printConstant(const ref<ConstantExpr>& e)
 		p.pushIndent();
 
 		unsigned int lowIndex= e->offset;
-		unsigned int highIndex= lowIndex + e->width;
+		unsigned int highIndex= lowIndex + e->width -1;
 
 		p << "((_ " << getSMTLIBKeyword(e->getKind()) << " " << highIndex << "  " << lowIndex << ") ";
 		p.pushIndent();
