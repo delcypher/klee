@@ -36,22 +36,44 @@ bool ExprSMTLIBPrinter::setConstantDisplayMode(ConstantDisplayMode cdm)
 
 void ExprSMTLIBPrinter::printConstant(const ref<ConstantExpr>& e)
 {
+	std::string value;
+
+	/* SMTLIBv2 deduces the bit-width (should be 8-bits in our case)
+	 * from the length of the string (e.g. zero is #b00000000). LLVM
+	 * doesn't know about this so we need to pad the printed output
+	 * with the appropriate number of zeros (zeroPad)
+	 */
+	unsigned int zeroPad=0;
+
 	switch(cdm)
 	{
 	case BINARY:
-		//TODO
+		e->toString(value,2);
+		o << "#b";
+
+		zeroPad = e->getWidth() - value.length();
+
+		for(unsigned int count=0; count < zeroPad; count++)
+			o << "0";
+
+		o << value ;
 	break;
 
 	case HEX:
-		//TODO
+		e->toString(value,16);
+		o << "#x";
+
+		zeroPad =  (e->getWidth() / 4) - value.length();
+		for(unsigned int count=0; count < zeroPad; count++)
+			o << "0";
+
+		o << value ;
 	break;
 
 	case DECIMAL:
-	{
-		std::string decimalValue;
-		e->toString(decimalValue);
-		o << "(_ bv" << decimalValue << " " << e->getWidth() << ")";
-	}
+		e->toString(value,10);
+		o << "(_ bv" << value<< " " << e->getWidth() << ")";
+
 	break;
 
 	default:
