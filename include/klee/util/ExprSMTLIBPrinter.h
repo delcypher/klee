@@ -87,8 +87,9 @@ namespace klee {
 			///Sets how readable the printed SMTLIBv2 commands are.
 			/// \param hr If set to true the printed commands are made more human readable.
 			///
-			/// The printed commands are made human readable by indenting and line breaking
-			/// appropriately.
+			/// The printed commands are made human readable by...
+			/// - Indenting and line breaking.
+			/// - Adding comments
 			void setHumanReadable(bool hr);
 
 			///Set SMTLIB options.
