@@ -555,7 +555,6 @@ namespace klee
 		if(humanReadable)
 			p << "; Query from solver turned into an assert";
 
-		p.breakLineI();
 		p.pushIndent();
 		p << "(assert";
 		p.pushIndent();
