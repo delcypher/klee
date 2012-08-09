@@ -29,83 +29,82 @@ namespace
 namespace klee
 {
 
-ExprSMTLIBPrinter::ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM) :
-	o(output), cm(constraintM), usedArrays(), p(output), haveConstantArray(false)
-{
-	setConstantDisplayMode(argConstantDisplayMode);
-}
-
-bool ExprSMTLIBPrinter::setConstantDisplayMode(ConstantDisplayMode cdm)
-{
-	if(cdm > DECIMAL)
-		return false;
-
-	this->cdm = cdm;
-	return true;
-}
-
-void ExprSMTLIBPrinter::printConstant(const ref<ConstantExpr>& e)
-{
-	/* Handle simple boolean constants */
-
-	if(e->isTrue())
+	ExprSMTLIBPrinter::ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM) :
+		o(output), cm(constraintM), usedArrays(), p(output), haveConstantArray(false)
 	{
-		p << "true";
-		return;
+		setConstantDisplayMode(argConstantDisplayMode);
 	}
 
-	if(e->isFalse())
+	bool ExprSMTLIBPrinter::setConstantDisplayMode(ConstantDisplayMode cdm)
 	{
-		p << "false";
-		return;
+		if(cdm > DECIMAL)
+			return false;
+
+		this->cdm = cdm;
+		return true;
 	}
 
-	/* Handle bitvector constants */
-
-	std::string value;
-
-	/* SMTLIBv2 deduces the bit-width (should be 8-bits in our case)
-	 * from the length of the string (e.g. zero is #b00000000). LLVM
-	 * doesn't know about this so we need to pad the printed output
-	 * with the appropriate number of zeros (zeroPad)
-	 */
-	unsigned int zeroPad=0;
-
-	switch(cdm)
+	void ExprSMTLIBPrinter::printConstant(const ref<ConstantExpr>& e)
 	{
-	case BINARY:
-		e->toString(value,2);
-		p << "#b";
+		/* Handle simple boolean constants */
 
-		zeroPad = e->getWidth() - value.length();
+		if(e->isTrue())
+		{
+			p << "true";
+			return;
+		}
 
-		for(unsigned int count=0; count < zeroPad; count++)
-			p << "0";
+		if(e->isFalse())
+		{
+			p << "false";
+			return;
+		}
 
-		p << value ;
-	break;
+		/* Handle bitvector constants */
 
-	case HEX:
-		e->toString(value,16);
-		p << "#x";
+		std::string value;
 
-		zeroPad =  (e->getWidth() / 4) - value.length();
-		for(unsigned int count=0; count < zeroPad; count++)
-			p << "0";
+		/* SMTLIBv2 deduces the bit-width (should be 8-bits in our case)
+		 * from the length of the string (e.g. zero is #b00000000). LLVM
+		 * doesn't know about this so we need to pad the printed output
+		 * with the appropriate number of zeros (zeroPad)
+		 */
+		unsigned int zeroPad=0;
 
-		p << value ;
-	break;
+		switch(cdm)
+		{
+			case BINARY:
+				e->toString(value,2);
+				p << "#b";
 
-	case DECIMAL:
-		e->toString(value,10);
-		p << "(_ bv" << value<< " " << e->getWidth() << ")";
+				zeroPad = e->getWidth() - value.length();
 
-	break;
+				for(unsigned int count=0; count < zeroPad; count++)
+					p << "0";
 
-	default:
-		klee_warning("ExprSMTLIBPrinter::printConstant() : Unexpected Constant display mode");
+				p << value ;
+				break;
+
+			case HEX:
+				e->toString(value,16);
+				p << "#x";
+
+				zeroPad =  (e->getWidth() / 4) - value.length();
+				for(unsigned int count=0; count < zeroPad; count++)
+					p << "0";
+
+				p << value ;
+				break;
+
+			case DECIMAL:
+				e->toString(value,10);
+				p << "(_ bv" << value<< " " << e->getWidth() << ")";
+				break;
+
+			default:
+				klee_warning("ExprSMTLIBPrinter::printConstant() : Unexpected Constant display mode");
+		}
 	}
-}
 
 	void ExprSMTLIBPrinter::printExpression(const ref<Expr>& e)
 	{
