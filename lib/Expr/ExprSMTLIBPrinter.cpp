@@ -31,7 +31,7 @@ namespace klee
 
 	ExprSMTLIBPrinter::ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM) :
 		o(output), cm(constraintM), usedArrays(), logicToUse(QF_AUFBV), p(output), haveConstantArray(false),
-		humanReadable(true)
+		humanReadable(true), smtlibBoolOptions()
 	{
 		setConstantDisplayMode(argConstantDisplayMode);
 	}
@@ -516,6 +516,34 @@ namespace klee
 	void ExprSMTLIBPrinter::setHumanReadable(bool hr)
 	{
 		humanReadable=hr;
+	}
+
+	void ExprSMTLIBPrinter::printOptions()
+	{
+		//Print out SMTLIBv2 boolean options
+		for(std::map<const char*,bool>::const_iterator i= smtlibBoolOptions.begin(); i!= smtlibBoolOptions.end(); i++)
+		{
+			o << "(set-option :" << i->first << " " << ((i->second)?"true":"false") << ")" << endl;
+		}
+	}
+
+	bool ExprSMTLIBPrinter::setSMTLIBboolOption(SMTLIBboolOptions option, bool value)
+	{
+		switch(option)
+		{
+			case PRINT_SUCCESS:
+				smtlibBoolOptions.insert(pair<const char*,bool>("print-success",value));
+				return true;
+			case PRODUCE_MODELS:
+				smtlibBoolOptions.insert(pair<const char*,bool>("produce-models",value));
+				return true;
+			case INTERACTIVE_MODE:
+				smtlibBoolOptions.insert(pair<const char*,bool>("interactive-mode",value));
+				return true;
+			default:
+				return false;
+
+		}
 	}
 
 }

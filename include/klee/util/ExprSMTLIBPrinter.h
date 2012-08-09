@@ -5,6 +5,7 @@
 #include <string>
 #include <set>
 #include <stack>
+#include <map>
 #include <klee/Constraints.h>
 #include <klee/Expr.h>
 #include <klee/util/PrintContext.h>
@@ -28,11 +29,18 @@ namespace klee {
 				QF_AUFBV
 			} logicToUse;
 
+			enum SMTLIBboolOptions
+			{
+				PRINT_SUCCESS,
+				PRODUCE_MODELS,
+				INTERACTIVE_MODE
+			};
+
 		protected:
 
 			virtual void printNotice();
 
-			virtual void printOptions() { };
+			virtual void printOptions();
 
 			virtual void printSetLogic();
 
@@ -84,6 +92,9 @@ namespace klee {
 
 			bool humanReadable;
 
+			//Map of enabled SMTLIB Options
+			std::map<const char*,bool> smtlibBoolOptions;
+
 
 		public:
 
@@ -110,6 +121,10 @@ namespace klee {
 
 			void setHumanReadable(bool hr);
 
+			///Set SMTLIB options.
+			/// These options will be generated when generateOutput() is called
+			/// \return true if option was successfully set.
+			bool setSMTLIBboolOption(SMTLIBboolOptions option, bool value);
 	};
 
 }
