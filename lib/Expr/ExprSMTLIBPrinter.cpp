@@ -15,7 +15,7 @@ namespace
 	("smtlib-display-constants", llvm::cl::desc("Sets how bitvector constants are written in generated SMTLIBv2 files (default=dec)"),
 	llvm::cl::values( clEnumValN(klee::ExprSMTLIBPrinter::BINARY, "bin","Use binary form (e.g. #b00101101)"),
 					  clEnumValN(klee::ExprSMTLIBPrinter::HEX, "hex","Use Hexadecimal form (e.g. #x2D)"),
-					  clEnumValN(klee::ExprSMTLIBPrinter::DECIMAL, "dec","Use decimal form (e.g. (_ BitVec45 8) )"),
+					  clEnumValN(klee::ExprSMTLIBPrinter::DECIMAL, "dec","Use decimal form (e.g. (_ bv45 8) )"),
 					  clEnumValEnd
 					),
 					llvm::cl::init(klee::ExprSMTLIBPrinter::DECIMAL)
@@ -30,8 +30,8 @@ namespace klee
 {
 
 	ExprSMTLIBPrinter::ExprSMTLIBPrinter(std::ostream& output, const Query& q) :
-		o(output), query(q), usedArrays(), logicToUse(QF_AUFBV), p(output), haveConstantArray(false),
-		humanReadable(true), smtlibBoolOptions()
+		o(output), query(q), usedArrays(), p(output), logicToUse(QF_AUFBV), haveConstantArray(false),
+		humanReadable(true), smtlibBoolOptions(), arraysToCallGetValueOn(NULL)
 	{
 		setConstantDisplayMode(argConstantDisplayMode);
 		mangleQuery();
@@ -443,7 +443,22 @@ namespace klee
 
 	void ExprSMTLIBPrinter::printAction()
 	{
-		o << "(check-sat)" << std::endl;
+		o << "(check-sat)" << endl;
+
+
+		if(arraysToCallGetValueOn!=NULL)
+		{
+			//Request the solver for the values of particular arrays
+			o << "(get-value (";
+
+			//loop over the array names
+			for(vector<const Array*>::const_iterator it = arraysToCallGetValueOn->begin(); it != arraysToCallGetValueOn->end(); it++)
+			{
+				o << (**it).name << " ";
+			}
+
+			o << ")" << endl;
+		}
 	}
 
 	void ExprSMTLIBPrinter::scan(const ref<Expr>& e)
@@ -495,7 +510,7 @@ namespace klee
 		o << "(exit)" << endl;
 	}
 
-	bool ExprSMTLIBPrinter::setLogic(Logics l)
+	bool ExprSMTLIBPrinter::setLogic(SMTLIBv2Logic l)
 	{
 		if(l > QF_AUFBV)
 			return false;
@@ -572,6 +587,13 @@ namespace klee
 				return false;
 
 		}
+	}
+
+	void ExprSMTLIBPrinter::setArrayValuesToGet(const std::vector<const Array*>& a)
+	{
+		arraysToCallGetValueOn = &a;
+		//This option must be set in order to use the SMTLIBv2 command (get-value () )
+		setSMTLIBboolOption(PRODUCE_MODELS,true);
 	}
 
 }
