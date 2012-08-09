@@ -236,7 +236,7 @@ namespace klee
 		p.pushIndent();
 
 		//loop over children and recurse into each
-		for(int i=0; i < e->getNumKids(); i++)
+		for(unsigned int i=0; i < e->getNumKids(); i++)
 		{
 			p.breakLineI();
 			printExpression(e->getKid(i));
