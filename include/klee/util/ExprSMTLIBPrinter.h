@@ -26,7 +26,7 @@ namespace klee {
 			{
 				QF_ABV,
 				QF_AUFBV
-			};
+			} logicToUse;
 
 		protected:
 
@@ -34,7 +34,7 @@ namespace klee {
 
 			virtual void printOptions() { };
 
-			virtual void printSetLogic(ExprSMTLIBPrinter::Logics logic);
+			virtual void printSetLogic();
 
 			virtual void printArrayDeclarations();
 
@@ -102,6 +102,8 @@ namespace klee {
 			ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM);
 
 			void generateOutput();
+
+			bool setLogic(Logics l);
 
 	};
 

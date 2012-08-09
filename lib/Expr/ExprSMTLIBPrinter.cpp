@@ -30,7 +30,7 @@ namespace klee
 {
 
 	ExprSMTLIBPrinter::ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM) :
-		o(output), cm(constraintM), usedArrays(), p(output), haveConstantArray(false)
+		o(output), cm(constraintM), usedArrays(), logicToUse(QF_AUFBV), p(output), haveConstantArray(false)
 	{
 		setConstantDisplayMode(argConstantDisplayMode);
 	}
@@ -332,17 +332,17 @@ namespace klee
 
 		printNotice();
 		printOptions();
-		printSetLogic(ExprSMTLIBPrinter::QF_AUFBV);
+		printSetLogic();
 		printArrayDeclarations();
 		printConstraints();
 		printAction();
 		printExit();
 	}
 
-	void ExprSMTLIBPrinter::printSetLogic(ExprSMTLIBPrinter::Logics logic)
+	void ExprSMTLIBPrinter::printSetLogic()
 	{
 		o << "(set-logic ";
-		switch(logic)
+		switch(logicToUse)
 		{
 		case QF_ABV: o << "QF_ABV"; break;
 		case QF_AUFBV: o << "QF_AUFBV" ; break;
@@ -478,6 +478,14 @@ namespace klee
 		o << "(exit)" << endl;
 	}
 
+	bool ExprSMTLIBPrinter::setLogic(Logics l)
+	{
+		if(l > QF_AUFBV)
+			return false;
+
+		logicToUse=l;
+		return true;
+	}
 
 }
 
