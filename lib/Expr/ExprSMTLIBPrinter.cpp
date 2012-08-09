@@ -29,11 +29,12 @@ namespace
 namespace klee
 {
 
-	ExprSMTLIBPrinter::ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM) :
-		o(output), cm(constraintM), usedArrays(), logicToUse(QF_AUFBV), p(output), haveConstantArray(false),
+	ExprSMTLIBPrinter::ExprSMTLIBPrinter(std::ostream& output, const Query& q) :
+		o(output), query(q), usedArrays(), logicToUse(QF_AUFBV), p(output), haveConstantArray(false),
 		humanReadable(true), smtlibBoolOptions()
 	{
 		setConstantDisplayMode(argConstantDisplayMode);
+		mangleQuery();
 	}
 
 	bool ExprSMTLIBPrinter::setConstantDisplayMode(ConstantDisplayMode cdm)
@@ -334,14 +335,18 @@ namespace klee
 	void ExprSMTLIBPrinter::generateOutput()
 	{
 		//perform scan of all expressions
-		for(ConstraintManager::const_iterator i= cm.begin(); i != cm.end(); i++)
+		for(ConstraintManager::const_iterator i= query.constraints.begin(); i != query.constraints.end(); i++)
 			scan(*i);
+
+		//Scan the query too
+		scan(query.expr);
 
 		printNotice();
 		printOptions();
 		printSetLogic();
 		printArrayDeclarations();
 		printConstraints();
+		printQuery();
 		printAction();
 		printExit();
 	}
@@ -420,7 +425,7 @@ namespace klee
 	{
 		o << "; Constraints" << endl;
 		//Generate assert statements for each constraint
-		for(ConstraintManager::const_iterator i= cm.begin(); i != cm.end(); i++)
+		for(ConstraintManager::const_iterator i= query.constraints.begin(); i != query.constraints.end(); i++)
 		{
 			p << "(assert ";
 			p.pushIndent();
@@ -525,6 +530,29 @@ namespace klee
 		{
 			o << "(set-option :" << i->first << " " << ((i->second)?"true":"false") << ")" << endl;
 		}
+	}
+
+	void ExprSMTLIBPrinter::printQuery()
+	{
+		p << "; Query from solver turned into an assert"; p.breakLineI();
+		p.pushIndent();
+		p << "(assert";
+		p.pushIndent();
+		printSeperator();
+
+		printExpression(queryAssert);
+
+		p.popIndent();
+		printSeperator();
+		p << ")";
+		p.popIndent();
+		p.breakLineI();
+	}
+
+	void ExprSMTLIBPrinter::mangleQuery()
+	{
+		//Negating the query
+		queryAssert = Expr::createIsZero(query.expr);
 	}
 
 	bool ExprSMTLIBPrinter::setSMTLIBboolOption(SMTLIBboolOptions option, bool value)

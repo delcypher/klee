@@ -9,6 +9,7 @@
 #include <klee/Constraints.h>
 #include <klee/Expr.h>
 #include <klee/util/PrintContext.h>
+#include <klee/Solver.h>
 
 namespace klee {
 
@@ -18,7 +19,9 @@ namespace klee {
 		public:
 			///Output stream to write to
 			std::ostream& o;
-			const ConstraintManager& cm;
+
+			//The query to print
+			const Query& query;
 
 			///Contains the arrays found during scans
 			std::set<const Array*> usedArrays;
@@ -47,6 +50,8 @@ namespace klee {
 			virtual void printArrayDeclarations();
 
 			virtual void printConstraints();
+
+			virtual void printQuery();
 
 			///Print the S-expression(s) to ask for satisfiability, get-value etc...
 			virtual void printAction();
@@ -95,6 +100,12 @@ namespace klee {
 			//Map of enabled SMTLIB Options
 			std::map<const char*,bool> smtlibBoolOptions;
 
+			///This contains the query from the solver but negated for our purposes.
+			/// \sa mangleQuery()
+			ref<Expr> queryAssert;
+
+			///This sets queryAssert to be the boolean negation of the original Query
+			void mangleQuery();
 
 		public:
 
@@ -113,7 +124,9 @@ namespace klee {
 
 			ConstantDisplayMode getConstantDisplayMode() { return cdm;}
 
-			ExprSMTLIBPrinter(std::ostream& output, const ConstraintManager& constraintM);
+			ExprSMTLIBPrinter(std::ostream& output, const Query& q);
+
+			virtual ~ExprSMTLIBPrinter() { }
 
 			void generateOutput();
 

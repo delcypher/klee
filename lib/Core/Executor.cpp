@@ -3347,7 +3347,11 @@ void Executor::getConstraintLog(const ExecutionState &state,
   case SMTLIB2:
   {
 	  std::ostringstream info;
-	  ExprSMTLIBPrinter printer(info,state.constraints);
+
+	  //Create a query
+	  Query q(state.constraints, ConstantExpr::create(0, Expr::Bool));
+
+	  ExprSMTLIBPrinter printer(info,q);
 	  printer.setHumanReadable(true);
 	  printer.generateOutput();
 	  res = info.str();
