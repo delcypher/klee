@@ -552,7 +552,10 @@ namespace klee
 	void ExprSMTLIBPrinter::printQuery()
 	{
 		if(humanReadable)
+		{
 			p << "; Query from solver turned into an assert";
+			p.breakLineI();
+		}
 
 		p.pushIndent();
 		p << "(assert";
