@@ -321,6 +321,7 @@ namespace klee
 
 			p.popIndent();
 			printSeperator();
+			p << ")";
 		}
 		else
 		{
