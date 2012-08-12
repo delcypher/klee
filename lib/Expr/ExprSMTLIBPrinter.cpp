@@ -147,7 +147,6 @@ namespace klee
 
 	void ExprSMTLIBPrinter::printReadExpr(const ref<ReadExpr>& e)
 	{
-		p.pushIndent();
 		p << "(" << getSMTLIBKeyword(e->getKind()) << " ";
 		p.pushIndent();
 
@@ -163,27 +162,24 @@ namespace klee
 		p.popIndent();
 		printSeperator();
 		p << ")";
-		p.popIndent();
 	}
 
 	void ExprSMTLIBPrinter::printExtractExpr(const ref<ExtractExpr>& e)
 	{
-		p.pushIndent();
-
 		unsigned int lowIndex= e->offset;
 		unsigned int highIndex= lowIndex + e->width -1;
 
 		p << "((_ " << getSMTLIBKeyword(e->getKind()) << " " << highIndex << "  " << lowIndex << ") ";
-		p.pushIndent();
+
+		p.pushIndent(); //add indent for recursive call
+		printSeperator();
 
 		//recurse
 		printExpression(e->getKid(0));
 
-		p.popIndent();
+		p.popIndent(); //pop indent added for the recursive call
 		printSeperator();
 		p << ")";
-		p.popIndent();
-
 	}
 
 	void ExprSMTLIBPrinter::printCastExpr(const ref<CastExpr>& e)
@@ -204,21 +200,19 @@ namespace klee
 		 */
 		unsigned int numExtraBits= (e->width) - (e->src->getWidth());
 
-		p.pushIndent();
 		p << "((_ " << getSMTLIBKeyword(e->getKind()) << " " <<
 				numExtraBits << ") ";
 
-		p.pushIndent();
+		p.pushIndent(); //add indent for recursive call
 		printSeperator();
 
 		//recurse
 		printExpression(e->src);
 
-		p.popIndent();
+		p.popIndent(); //pop indent added for recursive call
 		printSeperator();
 
 		p << ")";
-		p.popIndent();
 	}
 
 	void ExprSMTLIBPrinter::printNotEqualExpr(const ref<NeExpr>& e)
@@ -243,9 +237,8 @@ namespace klee
 
 	void ExprSMTLIBPrinter::printOtherExpr(const ref<Expr>& e)
 	{
-		p.pushIndent();
 		p << "(" << getSMTLIBKeyword(e->getKind()) << " ";
-		p.pushIndent();
+		p.pushIndent(); //add indent for recursive call
 
 		//loop over children and recurse into each
 		for(unsigned int i=0; i < e->getNumKids(); i++)
@@ -254,10 +247,9 @@ namespace klee
 			printExpression(e->getKid(i));
 		}
 
-		p.popIndent();
+		p.popIndent(); //pop indent added for recurisve call
 		printSeperator();
 		p << ")";
-		p.popIndent();
 	}
 
 	const char* ExprSMTLIBPrinter::getSMTLIBKeyword(Expr::Kind k)
@@ -313,6 +305,7 @@ namespace klee
 		{
 			p << "(store ";
 			p.pushIndent();
+			printSeperator();
 
 			//recurse to get the array or update that this store operations applies to
 			printUpdatesAndArray(un->next,root);

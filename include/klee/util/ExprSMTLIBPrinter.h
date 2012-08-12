@@ -15,6 +15,13 @@ namespace klee {
 
 	///Base Class for SMTLIBv2 printer for Expr trees
 	///This printer does not abbreviate expressions.
+	///
+	/// It is ended to be used as follows
+	/// -# Create instance of this class for a particular query and output stream
+	/// -# Set options using the methods prefixed with the word "set".
+	/// -# Call generateOutput()
+	///
+	/// This class can only be used for one query.
 	class ExprSMTLIBPrinter
 	{
 		public:
@@ -147,6 +154,14 @@ namespace klee {
 			/// the usedArrays vector.
 			void scan(const ref<Expr>& e);
 
+			/* Rules of recursion for "Special Expression handlers" and printOtherExpr()
+			 *
+			 * 1. The parent of the recursion will have created an indent level for you so you don't need to add another initially.
+			 * 2. You do not need to add a line break (via printSeperator() ) at the end, the parent caller will handle that.
+			 * 3. The effect of a single recursive call should not affect the depth of the stack (nor the contents
+			 *    of the stack prior to the call). I.e. After executing a single recursive call the stack should have the
+			 *    same size and contents as before executing the recursive call.
+			 */
 
 			//Special Expression handlers
 			virtual void printReadExpr(const ref<ReadExpr>& e);
