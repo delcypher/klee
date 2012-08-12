@@ -223,17 +223,22 @@ namespace klee
 
 	void ExprSMTLIBPrinter::printNotEqualExpr(const ref<NeExpr>& e)
 	{
+		p << "(not (";
 		p.pushIndent();
-		p << "(not (" << getSMTLIBKeyword(Expr::Eq) << " ";
+		p << getSMTLIBKeyword(Expr::Eq) << " ";
+		p.pushIndent();
+		printSeperator();
 
-		p.pushIndent();
 		printExpression(e->getKid(0));
 		printSeperator();
 		printExpression(e->getKid(1));
 		p.popIndent();
+		printSeperator();
 
 		p << ")";
 		p.popIndent();
+		printSeperator();
+		p << ")";
 	}
 
 	void ExprSMTLIBPrinter::printOtherExpr(const ref<Expr>& e)
