@@ -1,14 +1,18 @@
 #include "klee/SMTLIBSolver.h"
 #include "klee/SolverImpl.h"
 #include <string>
+#include "klee/util/ExprSMTLIBPrinter.h"
 
 //for findSymbolicObjects()
 #include "klee/util/ExprUtil.h"
 
 #include "klee/util/Assignment.h"
+#include "../Core/Common.h"
 
 //remove me
 #include <iostream>
+
+#include <fstream>
 
 using namespace std;
 namespace klee
@@ -20,6 +24,11 @@ namespace klee
 		  string pathToOutputTempFile;
 		  string pathToInputTempFile;
 		  double timeout;
+
+		  bool generateSMTLIBv2File(const Query& q, const std::vector<const Array*> arrays);
+		  bool invokeSolver();
+		  bool parseSolverOutput();
+
 
 		public:
 
@@ -102,7 +111,7 @@ namespace klee
   	  std::vector< std::vector<unsigned char> > values;
   	  bool hasSolution;
 
-  	  // Find the object used in the expression, and compute an assignment
+  	  // Find the objects used in the expression, and compute an assignment
   	  // for them.
   	  findSymbolicObjects(query.expr, objects);
   	  if (!computeInitialValues(query.withFalse(), objects, values, hasSolution))
@@ -116,13 +125,70 @@ namespace klee
   	  return true;
   	}
 
-	bool SMTLIBSolverImpl::computeInitialValues(const Query&,
+	bool SMTLIBSolverImpl::computeInitialValues(const Query& query,
 							const std::vector<const Array*> &objects,
 							std::vector< std::vector<unsigned char> > &values,
 							bool &hasSolution)
+	{
+		if(!generateSMTLIBv2File(query,objects))
+			return false;
+
+		if(!invokeSolver())
+			return false;
+
+		if(!parseSolverOutput())
+			return false;
+
+		//Assign values
+		//TODO
+		return false;
+	}
+
+
+	bool SMTLIBSolverImpl::invokeSolver()
 	{
 		//TODO
 		return false;
 	}
 
+	bool SMTLIBSolverImpl::parseSolverOutput()
+	{
+		//TODO
+		return false;
+	}
+
+	bool SMTLIBSolverImpl::generateSMTLIBv2File(const Query& q, const std::vector<const Array*> arrays)
+	{
+		//open output SMTLIBv2 file and truncate it
+		ofstream output(pathToOutputTempFile.c_str(),ios_base::trunc);
+
+		//check we can write to it
+		if(output.bad())
+		{
+			klee_warning("Can't write output SMTLIBv2 file");
+			return false;
+		}
+
+		ExprSMTLIBPrinter printer(output,q);
+
+		//set options
+		printer.setLogic(ExprSMTLIBPrinter::QF_AUFBV);
+		printer.setHumanReadable(false);
+		printer.setArrayValuesToGet(arrays);
+
+		//Generate SMTLIBv2 file containing the query
+		printer.generateOutput();
+
+		if(output.bad())
+		{
+			klee_warning("There was a problem writing the SMTLIBv2 file");
+			return false;
+		}
+
+		output.close();
+		return true;
+	}
+
+
 }
+
