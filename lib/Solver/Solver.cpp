@@ -483,7 +483,7 @@ STPSolverImpl::~STPSolverImpl() {
 /***/
 
 STPSolver::STPSolver(bool useForkedSTP, bool optimizeDivides)
-  : Solver(new STPSolverImpl(this, useForkedSTP, optimizeDivides))
+  : SolverWithTimeOut(new STPSolverImpl(this, useForkedSTP, optimizeDivides))
 {
 }
 

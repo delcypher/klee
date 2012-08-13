@@ -25,7 +25,7 @@ namespace klee {
   class TimingSolver {
   public:
     Solver *solver;
-    STPSolver *stpSolver;
+    SolverWithTimeOut *baseSolver;
     bool simplifyExprs;
 
   public:
@@ -34,15 +34,15 @@ namespace klee {
     /// \param _simplifyExprs - Whether expressions should be
     /// simplified (via the constraint manager interface) prior to
     /// querying.
-    TimingSolver(Solver *_solver, STPSolver *_stpSolver, 
+    TimingSolver(Solver *_solver, SolverWithTimeOut *_baseSolver,
                  bool _simplifyExprs = true) 
-      : solver(_solver), stpSolver(_stpSolver), simplifyExprs(_simplifyExprs) {}
+      : solver(_solver), baseSolver(_baseSolver), simplifyExprs(_simplifyExprs) {}
     ~TimingSolver() {
       delete solver;
     }
 
     void setTimeout(double t) {
-      stpSolver->setTimeout(t);
+      baseSolver->setTimeout(t);
     }
 
     bool evaluate(const ExecutionState&, ref<Expr>, Solver::Validity &result);

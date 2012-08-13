@@ -152,13 +152,28 @@ namespace klee {
     enum SolverType
     {
     	STP,
-    	SMTLIBv2
+    	SMTLIBv2,
+    	UNKNOWN
     };
+
+    virtual SolverType getType() { return UNKNOWN; }
 
   };
 
+  ///This class exists to abstract the setTimeout method out of STP so that other classes
+  ///may present this interface
+  class SolverWithTimeOut : public Solver
+  {
+  	  public:
+	    /// setTimeout - Set constraint solver timeout delay to the given value; 0
+	    /// is off.
+	    virtual void setTimeout(double timeout)=0;
+
+	    SolverWithTimeOut(SolverImpl* s) : Solver(s) {}
+  };
+
   /// STPSolver - A complete solver based on STP.
-  class STPSolver : public Solver {
+  class STPSolver : public SolverWithTimeOut {
   public:
     /// STPSolver - Construct a new STPSolver.
     ///
@@ -168,7 +183,7 @@ namespace klee {
     /// be optimized into add/shift/multiply operations.
     STPSolver(bool useForkedSTP, bool optimizeDivides = true);
 
-    
+    SolverType getType() { return Solver::STP;}
     
     /// getConstraintLog - Return the constraint log for the given state in CVC
     /// format.

@@ -364,7 +364,7 @@ Executor::Executor(const InterpreterOptions &opts,
                          interpreterHandler->getOutputFilename("queries.pc"),
                          interpreterHandler->getOutputFilename("stp-queries.pc"));
   
-  this->solver = new TimingSolver(solver, (STPSolver*) baseSolver);
+  this->solver = new TimingSolver(solver, static_cast<SolverWithTimeOut*>(baseSolver));
 
   memory = new MemoryManager();
 }
@@ -3365,10 +3365,18 @@ void Executor::getConstraintLog(const ExecutionState &state,
   {
   case STP:
   {
-	  Query query(state.constraints, ConstantExpr::alloc(0, Expr::Bool));
-	  char *log = solver->stpSolver->getConstraintLog(query);
-	  res = std::string(log);
-	  free(log);
+	  //check that we are using STP as our solver
+	  if(solver->baseSolver->getType() == Solver::STP)
+	  {
+		  Query query(state.constraints, ConstantExpr::alloc(0, Expr::Bool));
+		  char *log = static_cast<STPSolver*>(solver->baseSolver)->getConstraintLog(query);
+		  res = std::string(log);
+		  free(log);
+	  }
+	  else
+	  {
+		  klee_warning("Not using STP solver. Cannot generate .cvc file!");
+	  }
   }
 	  break;
 

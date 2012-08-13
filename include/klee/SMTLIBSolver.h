@@ -7,11 +7,11 @@
 namespace klee
 {
 
-	class SMTLIBSolver : public Solver
+	class SMTLIBSolver : public SolverWithTimeOut
 	{
 		public:
 		SMTLIBSolver(std::string& pathToSolver, const std::string& pathToOutputTempFile, const std::string& pathToInputTempFile) :
-		Solver(NULL)
+		SolverWithTimeOut(NULL)
 		{
 
 		}
@@ -20,6 +20,8 @@ namespace klee
 		{
 
 		}
+
+		SolverType getType() { return Solver::SMTLIBv2; }
 	};
 
 }
