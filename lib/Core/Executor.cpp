@@ -259,7 +259,7 @@ namespace {
                  cl::desc("Optimize constant divides into add/shift/multiplies before passing to STP"),
                  cl::init(true));
 
-  cl::opt<klee::Solver::SolverTypes> solverBackendToUse("solver",
+  cl::opt<klee::Solver::SolverType> solverBackendToUse("solver",
 		  cl::desc("Choose which solver to use (default=stp)"),
 		  cl::values(clEnumValN(klee::Solver::STP,"stp","Use STP"),
 				  	 clEnumValN(klee::Solver::SMTLIBv2,"smtlibv2","Use SMTLIBv2 solver (see -solver-path)"),

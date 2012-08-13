@@ -149,7 +149,7 @@ namespace klee {
     // FIXME: This should go into a helper class, and should handle failure.
     virtual std::pair< ref<Expr>, ref<Expr> > getRange(const Query&);
 
-    enum SolverTypes
+    enum SolverType
     {
     	STP,
     	SMTLIBv2
