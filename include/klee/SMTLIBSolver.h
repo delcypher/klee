@@ -2,7 +2,7 @@
 #define SMTLIBSOLVER_H_
 
 #include <string>
-#include "Solver.h"
+#include "klee/Solver.h"
 
 namespace klee
 {
@@ -10,16 +10,9 @@ namespace klee
 	class SMTLIBSolver : public SolverWithTimeOut
 	{
 		public:
-		SMTLIBSolver(std::string& pathToSolver, const std::string& pathToOutputTempFile, const std::string& pathToInputTempFile) :
-		SolverWithTimeOut(NULL)
-		{
+		SMTLIBSolver(std::string& pathToSolver, const std::string& pathToOutputTempFile, const std::string& pathToInputTempFile);
 
-		}
-
-		void setTimeout(double timeout)
-		{
-
-		}
+		void setTimeout(double timeout);
 
 		SolverType getType() { return Solver::SMTLIBv2; }
 	};
