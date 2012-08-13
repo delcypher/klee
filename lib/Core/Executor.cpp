@@ -81,6 +81,7 @@
 #include <cxxabi.h>
 
 #include "klee/util/ExprSMTLIBPrinter.h"
+#include "klee/SMTLIBSolver.h"
 
 using namespace llvm;
 using namespace klee;
@@ -257,6 +258,20 @@ namespace {
   STPOptimizeDivides("stp-optimize-divides", 
                  cl::desc("Optimize constant divides into add/shift/multiplies before passing to STP"),
                  cl::init(true));
+
+  cl::opt<klee::Solver::SolverTypes> solverBackendToUse("solver",
+		  cl::desc("Choose which solver to use (default=stp)"),
+		  cl::values(clEnumValN(klee::Solver::STP,"stp","Use STP"),
+				  	 clEnumValN(klee::Solver::SMTLIBv2,"smtlibv2","Use SMTLIBv2 solver (see -solver-path)"),
+				  	 clEnumValEnd
+		  	  	  	),
+		  cl::init(klee::Solver::STP)
+		  );
+
+  cl::opt<std::string> solverExecutablePath("solver-path",
+		  cl::desc("Set the path to the SMTLIBv2 solver executable. It must accept a .smt2 file as the first argument. See -solver option."),
+		  cl::init("")
+  	  	  );
 }
 
 
@@ -264,12 +279,12 @@ namespace klee {
   RNG theRNG;
 }
 
-Solver *constructSolverChain(STPSolver *stpSolver,
+Solver *constructSolverChain(Solver *baseSolver,
                              std::string queryLogPath,
                              std::string stpQueryLogPath,
                              std::string queryPCLogPath,
                              std::string stpQueryPCLogPath) {
-  Solver *solver = stpSolver;
+  Solver *solver = baseSolver;
 
   if (UseSTPQueryPCLog)
     solver = createPCLoggingSolver(solver, 
@@ -288,7 +303,7 @@ Solver *constructSolverChain(STPSolver *stpSolver,
     solver = createIndependentSolver(solver);
 
   if (DebugValidateSolver)
-    solver = createValidatingSolver(solver, stpSolver);
+    solver = createValidatingSolver(solver, new STPSolver(UseForkedSTP, STPOptimizeDivides));
 
   if (UseQueryPCLog)
     solver = createPCLoggingSolver(solver, 
@@ -320,15 +335,36 @@ Executor::Executor(const InterpreterOptions &opts,
       ? std::min(MaxSTPTime,MaxInstructionTime)
       : std::max(MaxSTPTime,MaxInstructionTime)) {
   if (stpTimeout) UseForkedSTP = true;
-  STPSolver *stpSolver = new STPSolver(UseForkedSTP, STPOptimizeDivides);
+
+  //Decide which solver base we will use
+  Solver* baseSolver=0;
+  switch(solverBackendToUse)
+  {
+  	  case Solver::STP :
+  	  	  baseSolver = new STPSolver(UseForkedSTP, STPOptimizeDivides);
+  	  	  break;
+  	  case Solver::SMTLIBv2 :
+  		  //check the solver path has been specified on the command line
+  		  if(solverExecutablePath.getNumOccurrences() ==0)
+  			  klee_error("SMTLIBv2 solver executable path not specified (-solver-path)");
+
+  		  baseSolver = new SMTLIBSolver(solverExecutablePath.getValue(),
+  				interpreterHandler->getOutputFilename("query.smt2"),
+  				interpreterHandler->getOutputFilename("smt2-result.log")
+  				  	  	  	  	  	);
+  		 break;
+  	  default:
+  		  klee_error("Tried to invoke an unknown solver.");
+  }
+
   Solver *solver = 
-    constructSolverChain(stpSolver,
+    constructSolverChain(baseSolver,
                          interpreterHandler->getOutputFilename("queries.qlog"),
                          interpreterHandler->getOutputFilename("stp-queries.qlog"),
                          interpreterHandler->getOutputFilename("queries.pc"),
                          interpreterHandler->getOutputFilename("stp-queries.pc"));
   
-  this->solver = new TimingSolver(solver, stpSolver);
+  this->solver = new TimingSolver(solver, (STPSolver*) baseSolver);
 
   memory = new MemoryManager();
 }
