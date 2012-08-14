@@ -23,7 +23,9 @@ namespace klee
 		  string pathToSolver;
 		  string pathToOutputTempFile;
 		  string pathToInputTempFile;
-		  double timeout;
+
+		  ///Number of seconds to wait for the solver to complete before giving up.
+		  unsigned int timeout;
 
 		  bool generateSMTLIBv2File(const Query& q, const std::vector<const Array*> arrays);
 		  bool invokeSolver();
@@ -39,6 +41,9 @@ namespace klee
 		  	~SMTLIBSolverImpl() {}
 
 
+		  	///Set the time in seconds to wait for the solver to complete.
+		  	///This time is rounded to the nearest second.
+		  	///The default is 0 (i.e. no timeout)
 			void setTimeout(double _timeout);
 
 			bool computeTruth(const Query&, bool &isValid);
@@ -88,7 +93,8 @@ namespace klee
   		if(_timeout < 0.0)
   			timeout=0;
   		else
-  			timeout=_timeout;
+  			//the +0.5 is to simulate rounding
+  			timeout=static_cast<unsigned int>(_timeout + 0.5);
 	}
 
 
