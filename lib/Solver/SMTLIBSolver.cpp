@@ -193,6 +193,16 @@ namespace klee
 
 		if(childPid > 0)
 		{
+			//HACK. KLEE's request of SIGALRM interupts sigtimedwait() and sigwaitinfo()
+			//We disable it here just to make the code here work as its supposed to.
+			//FIXME
+			sigset_t alrm_mask;
+			sigemptyset(&alrm_mask);
+			sigaddset(&alrm_mask,SIGALRM);
+			if(sigprocmask(SIG_BLOCK,&alrm_mask,NULL) < 0)
+				klee_warning("failed to block ALRM");
+
+
 			//Parent code
 			while(true)
 			{
@@ -225,6 +235,7 @@ namespace klee
 					{
 						/* The Solver timed out */
 						kill(childPid,SIGKILL); //Kill the child.
+						klee_warning("SMTLIBSolverImpl: Solver timed out!");
 						return false; //For now we'll tell KLEE we failed (fixme maybe?)
 					}
 					else
@@ -238,6 +249,12 @@ namespace klee
 				{
 					//The child "finished" without timing out. We're not handling special cases.
 					break;
+
+					//hack allow SIGALRM again
+					if(sigprocmask(SIG_UNBLOCK,&alrm_mask,NULL) < 0)
+						klee_warning("failed to unblock ALRM");
+
+
 				}
 
 
