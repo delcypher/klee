@@ -449,7 +449,7 @@ namespace klee
 		o << "(check-sat)" << endl;
 
 
-		if(arraysToCallGetValueOn!=NULL)
+		if(arraysToCallGetValueOn!=NULL && !arraysToCallGetValueOn->empty())
 		{
 			//Request the solver for the values of particular arrays
 			o << "(get-value (";
@@ -460,7 +460,7 @@ namespace klee
 				o << (**it).name << " ";
 			}
 
-			o << ")" << endl;
+			o << "))" << endl;
 		}
 	}
 
