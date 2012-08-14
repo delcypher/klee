@@ -96,7 +96,7 @@ namespace {
             cl::desc("Write .pc files for each test case"));
   
   cl::opt<bool>
-  WriteSMT2s("write-smt2",
+  WriteSMT2s("write-smt2s",
             cl::desc("Write .smt2 files for each test case"));
 
   cl::opt<bool>
