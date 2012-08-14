@@ -599,8 +599,10 @@ namespace klee
 	void ExprSMTLIBPrinter::setArrayValuesToGet(const std::vector<const Array*>& a)
 	{
 		arraysToCallGetValueOn = &a;
+
 		//This option must be set in order to use the SMTLIBv2 command (get-value () )
-		setSMTLIBboolOption(PRODUCE_MODELS,true);
+		if(!a.empty())
+			setSMTLIBboolOption(PRODUCE_MODELS,true);
 	}
 
 }
