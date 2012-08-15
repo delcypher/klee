@@ -136,6 +136,7 @@ namespace klee
 			//now have "(_" so far
 
 			//walkpast any whitespace
+			lastChar=input->get();
 			if(!walkPastWhiteSpace())
 			{
 				//we didn't expect to hit EOF here
@@ -160,6 +161,7 @@ namespace klee
 			//have "(_ bv" so far.
 
 			//the next character should be the start of the digits ( the actual numeric value in base10)
+			lastChar=input->get();
 			if(!isdigit(lastChar))
 			{
 				*tokenToReturn = UNKNOWN_TOKEN;
@@ -207,6 +209,8 @@ namespace klee
 				lastTokenContents+=input->get(); //move input forward
 				lastChar=input->peek();
 			}
+
+			lastChar=input->get(); //move forward one so stream points ahead of lastChar
 
 			//walkpast any whitespace
 			if(!walkPastWhiteSpace())
