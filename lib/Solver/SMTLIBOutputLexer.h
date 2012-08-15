@@ -21,18 +21,18 @@ namespace klee
 			///This is a restricted set of the possible output tokens from a SMTLIBv2 solver
 			enum Token
 			{
-				SAT, ///< "sat"
-				UNSAT, ///< "unsat"
-				UNKNOWN, //< "unknown"
-				LBRACKET, ///< "("
-				RBRACKET, ///< ")"
-				SELECT, ///< "select"
-				ARRAY_IDENTIFIER, //< Array identitfier matching [A-Za-z_0-9]+
-				NUMERAL_BASE10, ///< "(_ bv1 8)"
-				NUMERAL_BASE16, ///< "#x01"
-				NUMERAL_BASE2, ///< "#b00000001"
-				END_OF_FILE, ///< End of file.
-				UNKNOWN_TOKEN /// < Unrecognised token.
+				SAT_TOKEN, ///< "sat"
+				UNSAT_TOKEN, ///< "unsat"
+				UNKNOWN_TOKEN, //< "unknown"
+				LBRACKET_TOKEN, ///< "("
+				RBRACKET_TOKEN, ///< ")"
+				SELECT_TOKEN, ///< "select"
+				ARRAY_IDENTIFIER_TOKEN, //< Array identitfier matching [A-Za-z_0-9]+
+				NUMERAL_BASE10_TOKEN, ///< "(_ bv1 8)"
+				NUMERAL_BASE16_TOKEN, ///< "#x01"
+				NUMERAL_BASE2_TOKEN, ///< "#b00000001"
+				END_OF_FILE_TOKEN, ///< End of file.
+				UNRECOGNISED_TOKEN /// < Unrecognised token.
 			};
 
 			SMTLIBOutputLexer();

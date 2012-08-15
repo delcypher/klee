@@ -7,7 +7,7 @@ namespace klee
 	SMTLIBOutputLexer::SMTLIBOutputLexer() :
 			input(NULL),lastTokenContents(""),
 			lastChar(' '), lastNumericTokenValue(""),
-			lastNumericToken(UNKNOWN_TOKEN),
+			lastNumericToken(UNRECOGNISED_TOKEN),
 			tokenToReturn(NULL)
 	{
 	}
@@ -53,7 +53,7 @@ namespace klee
 				lastChar=input->peek();
 				if(lastChar != '0' && lastChar != '1')
 				{
-					*tokenToReturn = UNKNOWN_TOKEN;
+					*tokenToReturn = UNRECOGNISED_TOKEN;
 					return false;
 				}
 
@@ -71,7 +71,7 @@ namespace klee
 				lastTokenContents+=lastNumericTokenValue;
 
 				//we should gathered all the bits now
-				*tokenToReturn = lastNumericToken= NUMERAL_BASE2;
+				*tokenToReturn = lastNumericToken= NUMERAL_BASE2_TOKEN;
 				return true;
 			}
 			else if(lastTokenContents=="#x")
@@ -82,7 +82,7 @@ namespace klee
 				lastChar=input->peek();
 				if(!isxdigit(lastChar))
 				{
-					*tokenToReturn = UNKNOWN_TOKEN;
+					*tokenToReturn = UNRECOGNISED_TOKEN;
 					return false;
 				}
 
@@ -100,19 +100,19 @@ namespace klee
 				lastTokenContents+=lastNumericTokenValue;
 
 				//we should have gathered all the hex digits now
-				*tokenToReturn = lastNumericToken = NUMERAL_BASE16;
+				*tokenToReturn = lastNumericToken = NUMERAL_BASE16_TOKEN;
 				return true;
 			}
 			else
 			{
-				*tokenToReturn = UNKNOWN_TOKEN;
+				*tokenToReturn = UNRECOGNISED_TOKEN;
 				return false;
 			}
 		}
 
 		if(lastChar ==')')
 		{
-			*tokenToReturn = RBRACKET;
+			*tokenToReturn = RBRACKET_TOKEN;
 			lastTokenContents=lastChar;
 			return true;
 		}
@@ -123,7 +123,7 @@ namespace klee
 			if(input->peek() != '_')
 			{
 				//It's just a left bracket
-				*tokenToReturn = LBRACKET;
+				*tokenToReturn = LBRACKET_TOKEN;
 				lastTokenContents=lastChar;
 				return true;
 			}
@@ -154,7 +154,7 @@ namespace klee
 
 			if(lastTokenContents != "(_ bv")
 			{
-				*tokenToReturn = UNKNOWN_TOKEN;
+				*tokenToReturn = UNRECOGNISED_TOKEN;
 				return false;
 			}
 
@@ -164,7 +164,7 @@ namespace klee
 			lastChar=input->get();
 			if(!isdigit(lastChar))
 			{
-				*tokenToReturn = UNKNOWN_TOKEN;
+				*tokenToReturn = UNRECOGNISED_TOKEN;
 				return false;
 			}
 
@@ -196,7 +196,7 @@ namespace klee
 			//lastChar should be pointing at a numeral
 			if(!isdigit(lastChar))
 			{
-				*tokenToReturn = UNKNOWN_TOKEN;
+				*tokenToReturn = UNRECOGNISED_TOKEN;
 				return false;
 			}
 
@@ -222,13 +222,13 @@ namespace klee
 			//now the last character should be ')'
 			if(lastChar != ')')
 			{
-				*tokenToReturn = UNKNOWN_TOKEN;
+				*tokenToReturn = UNRECOGNISED_TOKEN;
 				return false;
 			}
 			lastTokenContents+=lastChar;
 
 			//Finally processed the bitvector
-			*tokenToReturn = NUMERAL_BASE10;
+			*tokenToReturn = NUMERAL_BASE10_TOKEN;
 			return true;
 		}
 
@@ -252,25 +252,25 @@ namespace klee
 				 */
 				if(lastTokenContents == "sat" && !isIdentifier(input->peek()))
 				{
-					*tokenToReturn = SAT;
+					*tokenToReturn = SAT_TOKEN;
 					return true;
 				}
 
 				if(lastTokenContents == "unsat" && !isIdentifier(input->peek()))
 				{
-					*tokenToReturn = UNSAT;
+					*tokenToReturn = UNSAT_TOKEN;
 					return true;
 				}
 
 				if(lastTokenContents == "unknown" && !isIdentifier(input->peek()))
 				{
-					*tokenToReturn = UNKNOWN;
+					*tokenToReturn = UNKNOWN_TOKEN;
 					return true;
 				}
 
 				if(lastTokenContents == "select" && !isIdentifier(input->peek()))
 				{
-					*tokenToReturn = SELECT;
+					*tokenToReturn = SELECT_TOKEN;
 					return true;
 				}
 
@@ -278,13 +278,13 @@ namespace klee
 			}
 
 			//We must have an array identifier.
-			*tokenToReturn = ARRAY_IDENTIFIER;
+			*tokenToReturn = ARRAY_IDENTIFIER_TOKEN;
 			return true;
 
 
 		}
 
-		*tokenToReturn = UNKNOWN_TOKEN;
+		*tokenToReturn = UNRECOGNISED_TOKEN;
 		return false;
 	}
 
@@ -318,7 +318,7 @@ namespace klee
 			if(input->eof())
 			{
 				//hit end of file
-				*tokenToReturn = END_OF_FILE;
+				*tokenToReturn = END_OF_FILE_TOKEN;
 				return false;//User's expect this return value if hit end of file.
 			}
 		}
