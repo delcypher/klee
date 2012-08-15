@@ -114,6 +114,9 @@ namespace klee {
 			///
 			/// If no call is made to this function before ExprSMTLIBPrinter::generateOutput() then
 			/// the solver will only be asked to check satisfiability.
+			///
+			/// If the passed vector is not empty then the values of those arrays will be requested
+			/// via (get-value ()) SMTLIBv2 command in the output stream in the same order as vector.
 			void setArrayValuesToGet(const std::vector<const Array*>& a);
 
 

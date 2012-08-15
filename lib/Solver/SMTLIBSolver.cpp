@@ -20,6 +20,8 @@
 #include <errno.h>
 #include <sys/wait.h>
 
+#include "SMTLIBOutputLexer.h"
+
 
 using namespace std;
 namespace klee
@@ -28,14 +30,17 @@ namespace klee
 	{
 		private:
 		  string pathToSolver;
-		  string pathToOutputTempFile;
-		  string pathToInputTempFile;
+		  string pathToOutputTempFile; //< The .smt2 file
+		  string pathToInputTempFile; //< The result from the solver
+		  SMTLIBOutputLexer lexer;
 
 		  timespec timeout;
 
 		  bool generateSMTLIBv2File(const Query& q, const std::vector<const Array*> arrays);
 		  bool invokeSolver();
-		  bool parseSolverOutput();
+		  bool parseSolverOutput(const std::vector<const Array*> &objects,
+					std::vector< std::vector<unsigned char> > &values,
+					bool &hasSolution);
 
 
 		public:
@@ -156,12 +161,10 @@ namespace klee
 		if(!invokeSolver())
 			return false;
 
-		if(!parseSolverOutput())
+		if(!parseSolverOutput(objects,values,hasSolution))
 			return false;
 
-		//Assign values
-		//TODO
-		return false;
+		return true;
 	}
 
 
@@ -330,10 +333,160 @@ namespace klee
 
 	}
 
-	bool SMTLIBSolverImpl::parseSolverOutput()
+	bool SMTLIBSolverImpl::parseSolverOutput(const std::vector<const Array*> &objects,
+			std::vector< std::vector<unsigned char> > &values,
+			bool &hasSolution)
 	{
-		//TODO
-		return false;
+		//open the output from the solver ready to parse
+		ifstream file(pathToInputTempFile.c_str());
+
+		if(!file.good())
+			return false;
+
+		lexer.setInput(file);
+
+		SMTLIBOutputLexer::Token t=SMTLIBOutputLexer::UNRECOGNISED_TOKEN;
+
+
+		/* The first thing we want to check is if the solver thought the
+		 * set of assertions was satisfiable
+		 */
+		if(!lexer.getNextToken(t))
+		{
+			klee_warning("SMTLIBSolverImpl: Lexer failed to get token");
+			return false;
+		}
+
+		switch(t)
+		{
+			case SMTLIBOutputLexer::UNKNOWN_TOKEN:
+				klee_warning("SMTLIBSolverImpl : Solver responded unknown");
+				return false;
+			case SMTLIBOutputLexer::UNSAT_TOKEN:
+				//not satisfiable
+				hasSolution=false;
+				return true;
+			case SMTLIBOutputLexer::SAT_TOKEN:
+				hasSolution=true;
+				break;
+			default:
+				klee_warning("SMTLIBSolverImpl : Unexpected token");
+				return false;
+		}
+
+		//If we reach here the solver thought the assertions where satisfiable.
+		if(objects.empty())
+		{
+			//we weren't ask to get any values
+			return true;
+		}
+
+		//Make sure the values vector of vectors has enough slots
+		values.reserve(objects.size());
+
+		unsigned int arrayNumber=0;
+		unsigned char byteValue=0;
+		//Loop over the arrays to retrieve their values.
+		for(std::vector<const Array*>::const_iterator it=objects.begin(); it!=objects.end(); it++, arrayNumber++)
+		{
+			//make sure the values vector has enough slots
+			values[arrayNumber].reserve((*it)->size);
+
+			//Loop over the bytes in the array
+			for(unsigned int byteNumber=0; byteNumber < (*it)->size; byteNumber++)
+			{
+
+				// Expect "((("
+				for(int c=0; c <3 ; c++)
+				{
+					if(!lexer.getNextToken(t) || t!=SMTLIBOutputLexer::LBRACKET_TOKEN)
+					{
+						klee_warning("SMTLIBSolverImpl: Lexer failed to get token for array assignment. Expected `(`");
+						return false;
+					}
+				}
+
+				// Expect "select"
+				if(!lexer.getNextToken(t) || t!=SMTLIBOutputLexer::SELECT_TOKEN)
+				{
+					klee_warning("SMTLIBSolverImpl: Lexer failed to get token for array assignment. Expected `select`");
+					return false;
+				}
+
+				// Expect the array name
+				if(!lexer.getNextToken(t) ||
+				   t!=SMTLIBOutputLexer::ARRAY_IDENTIFIER_TOKEN ||
+				   (*it)->name != lexer.getLastTokenContents())
+				{
+					klee_warning("SMTLIBSolverImpl: Lexer failed to get token for array assignment.");
+					cerr << "Expected array name `" << (*it)->name << "`. Instead received token `" << lexer.getLastTokenContents() <<
+							"`" << endl;
+					return false;
+				}
+
+				// Expect the array index
+				unsigned long foundByteNumber=0;
+				if(!lexer.getNextToken(t) ||
+				   t!=SMTLIBOutputLexer::NUMERAL_BASE10_TOKEN ||
+				   !lexer.getLastNumericValue(foundByteNumber) ||
+				   foundByteNumber != byteNumber
+				)
+				{
+					klee_warning("SMTLIBSolverImpl : Lexer failed to get token for array assignment.");
+					cerr << "Expected (_ bv" << foundByteNumber << " " << (*it)->getDomain() << " ). Instead received"
+							"token " << lexer.getLastTokenContents() << endl;
+					return false;
+				}
+
+				//Expect the array value, we support multiple formats
+				unsigned long determinedByteValue=0;
+				if(!lexer.getNextToken(t) ||
+						(t!=SMTLIBOutputLexer::NUMERAL_BASE10_TOKEN &&
+						 t!=SMTLIBOutputLexer::NUMERAL_BASE16_TOKEN &&
+						 t!=SMTLIBOutputLexer::NUMERAL_BASE2_TOKEN
+						)
+				)
+				{
+					klee_warning("SMTLIBSolverImpl : Lexer failed to get token for array assignment.");
+					cerr << "Expected bitvector value." << endl;
+					return false;
+				}
+
+				if(!lexer.getLastNumericValue(determinedByteValue))
+				{
+					klee_warning("SMTLIBSolverImpl : Lexer could not get the numeric value of the found bitvector constant");
+					return false;
+				}
+
+				assert(determinedByteValue <= 255 && "Determined value for bitvector byte was out of range!"); //check in range
+
+				byteValue = determinedByteValue;
+
+				/* Perform the assignment. We assume for now the the "byteNumber"
+				 * corresponds with what KLEE expects.
+				 */
+				values[arrayNumber][byteNumber] = byteValue;
+
+
+				// Expect ")))"
+				for(int c=0; c <3 ; c++)
+				{
+					if(!lexer.getNextToken(t) || t!=SMTLIBOutputLexer::RBRACKET_TOKEN)
+					{
+						klee_warning("SMTLIBSolverImpl: Lexer failed to get token for array assignment. Expected `)`");
+						return false;
+					}
+				}
+
+
+
+			}
+
+
+		}
+
+		//We found satisfiability and determined the array values successfully.
+		return true;
 	}
 
 	bool SMTLIBSolverImpl::generateSMTLIBv2File(const Query& q, const std::vector<const Array*> arrays)
