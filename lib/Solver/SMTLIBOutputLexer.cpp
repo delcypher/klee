@@ -1,12 +1,14 @@
 #include "SMTLIBOutputLexer.h"
 #include <ctype.h>
+#include <errno.h>
+#include <cstdlib>
 
 namespace klee
 {
 
 	SMTLIBOutputLexer::SMTLIBOutputLexer() :
 			input(NULL),lastTokenContents(""),
-			lastChar(' '), lastNumericTokenValue(""),
+			lastNumericTokenValue(""), lastChar(' '),
 			lastNumericToken(UNRECOGNISED_TOKEN),
 			tokenToReturn(NULL)
 	{
@@ -228,7 +230,7 @@ namespace klee
 			lastTokenContents+=lastChar;
 
 			//Finally processed the bitvector
-			*tokenToReturn = NUMERAL_BASE10_TOKEN;
+			*tokenToReturn = lastNumericToken = NUMERAL_BASE10_TOKEN;
 			return true;
 		}
 
@@ -327,10 +329,27 @@ namespace klee
 		return true;//didn't hit end of file
 	}
 
-bool SMTLIBOutputLexer::getLastNumericValue(unsigned int& value)
+bool SMTLIBOutputLexer::getLastNumericValue(unsigned long int& value)
 {
-	//TODO
-	return false;
+	int base=0;
+
+	switch(lastNumericToken)
+	{
+		case NUMERAL_BASE10_TOKEN: base=10; break;
+		case NUMERAL_BASE16_TOKEN: base=16; break;
+		case NUMERAL_BASE2_TOKEN:  base=2; break;
+		default:
+			return false;
+	}
+
+	errno=0;
+	value=strtol(lastNumericTokenValue.c_str(),NULL,base);
+
+	if(errno!=0)
+		return false; //something went wrong
+	else
+		return true;
+
 }
 
 	bool SMTLIBOutputLexer::isIdentifier(char c)

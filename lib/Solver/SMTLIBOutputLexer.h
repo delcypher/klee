@@ -55,8 +55,8 @@ namespace klee
 
 			///Determines the numeric value of the last numeral that was found using getNextToken()
 			/// \param value is where the last found numeric value was placed
-			/// \return true if there is a numeric value available.
-			bool getLastNumericValue(unsigned int& value);
+			/// \return true if there is a numeric value available and the numeric value will fit inside a long int.
+			bool getLastNumericValue(unsigned long int& value);
 
 		private:
 			std::istream* input;
