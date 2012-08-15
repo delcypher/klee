@@ -247,6 +247,7 @@ namespace klee
 			{
 				lastChar=input->get();
 				lastTokenContents+=lastChar;
+				lastChar=input->peek();
 
 				/* Check for keywords. We look ahead one character to check that we're not accidently
 				 * identifying an ARRAY_IDENTIFIER that uses another keyword as a prefix.
