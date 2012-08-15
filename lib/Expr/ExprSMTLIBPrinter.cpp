@@ -446,21 +446,31 @@ namespace klee
 
 	void ExprSMTLIBPrinter::printAction()
 	{
+		//Ask solver to check for satisfiability
 		o << "(check-sat)" << endl;
 
-
+		/* If we has arrays to find the values of then we'll
+		 * ask the solver for the value of each bitvector in each array
+		 */
 		if(arraysToCallGetValueOn!=NULL && !arraysToCallGetValueOn->empty())
 		{
-			//Request the solver for the values of particular arrays
-			o << "(get-value (";
+
+			const Array* theArray=0;
 
 			//loop over the array names
 			for(vector<const Array*>::const_iterator it = arraysToCallGetValueOn->begin(); it != arraysToCallGetValueOn->end(); it++)
 			{
-				o << (**it).name << " ";
+				theArray=*it;
+				//Loop over the array indices
+				for(unsigned int index=0; index < theArray->size; ++index)
+				{
+					o << "(get-value ( (select " << (**it).name <<
+					     " (_ bv" << index << " " << theArray->getDomain() << ") ) ) )" << endl;
+				}
+
 			}
 
-			o << "))" << endl;
+
 		}
 	}
 
