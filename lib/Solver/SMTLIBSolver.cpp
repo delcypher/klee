@@ -384,6 +384,11 @@ namespace klee
 		//Make sure the values vector of vectors has enough slots
 		values.reserve(objects.size());
 
+		/* We expected output like
+		 * (((select unnamed_1 (_ bv0 32) ) #x20))
+		 */
+
+
 		unsigned int arrayNumber=0;
 		unsigned char byteValue=0;
 		//Loop over the arrays to retrieve their values.
@@ -438,6 +443,14 @@ namespace klee
 					return false;
 				}
 
+				//Expect ")"
+				if(!lexer.getNextToken(t) || t!=SMTLIBOutputLexer::RBRACKET_TOKEN)
+				{
+					klee_warning("SMTLIBSolverImpl: Lexer failed to get token for array assignment. Expected `)`");
+					return false;
+				}
+
+
 				//Expect the array value, we support multiple formats
 				unsigned long determinedByteValue=0;
 				if(!lexer.getNextToken(t) ||
@@ -468,8 +481,8 @@ namespace klee
 				values[arrayNumber][byteNumber] = byteValue;
 
 
-				// Expect ")))"
-				for(int c=0; c <3 ; c++)
+				// Expect "))"
+				for(int c=0; c <2 ; c++)
 				{
 					if(!lexer.getNextToken(t) || t!=SMTLIBOutputLexer::RBRACKET_TOKEN)
 					{
