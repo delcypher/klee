@@ -361,10 +361,12 @@ namespace klee
 		{
 			case SMTLIBOutputLexer::UNKNOWN_TOKEN:
 				klee_warning("SMTLIBSolverImpl : Solver responded unknown");
+				file.close();
 				return false;
 			case SMTLIBOutputLexer::UNSAT_TOKEN:
 				//not satisfiable
 				hasSolution=false;
+				file.close();
 				return true;
 			case SMTLIBOutputLexer::SAT_TOKEN:
 				hasSolution=true;
@@ -378,11 +380,12 @@ namespace klee
 		if(objects.empty())
 		{
 			//we weren't ask to get any values
+			file.close();
 			return true;
 		}
 
 		//Make sure the values vector of vectors has enough slots
-		values.reserve(objects.size());
+		//values.reserve(objects.size());
 
 		/* We expected output like
 		 * (((select unnamed_1 (_ bv0 32) ) #x20))
@@ -395,11 +398,13 @@ namespace klee
 		for(std::vector<const Array*>::const_iterator it=objects.begin(); it!=objects.end(); it++, arrayNumber++)
 		{
 			//make sure the values vector has enough slots
-			values[arrayNumber].reserve((*it)->size);
+			//values[arrayNumber].reserve((*it)->size);
+			std::vector<unsigned char> data;
 
 			//Loop over the bytes in the array
 			for(unsigned int byteNumber=0; byteNumber < (*it)->size; byteNumber++)
 			{
+
 
 				// Expect "((("
 				for(int c=0; c <3 ; c++)
@@ -478,7 +483,7 @@ namespace klee
 				/* Perform the assignment. We assume for now the the "byteNumber"
 				 * corresponds with what KLEE expects.
 				 */
-				values[arrayNumber][byteNumber] = byteValue;
+				data.push_back(byteValue);
 
 
 				// Expect "))"
@@ -495,10 +500,13 @@ namespace klee
 
 			}
 
+			values.push_back(data);
+
 
 		}
 
 		//We found satisfiability and determined the array values successfully.
+		file.close();
 		return true;
 	}
 
