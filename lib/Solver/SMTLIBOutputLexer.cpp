@@ -51,7 +51,7 @@ namespace klee
 
 				//check there are digits that follow
 				lastChar=input->peek();
-				if(lastChar != '0' || lastChar != '1')
+				if(lastChar != '0' && lastChar != '1')
 				{
 					*tokenToReturn = UNKNOWN_TOKEN;
 					return false;
