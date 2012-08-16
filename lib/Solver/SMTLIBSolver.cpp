@@ -399,8 +399,8 @@ namespace klee
 			return true;
 		}
 
-		//Make sure the values vector of vectors has enough slots
-		//values.reserve(objects.size());
+		//Preemptively make space seeing as we known how many arrays there are.
+		values.reserve(objects.size());
 
 		/* We expected output like
 		 * (((select unnamed_1 (_ bv0 32) ) #x20))
@@ -412,9 +412,9 @@ namespace klee
 		//Loop over the arrays to retrieve their values.
 		for(std::vector<const Array*>::const_iterator it=objects.begin(); it!=objects.end(); it++, arrayNumber++)
 		{
-			//make sure the values vector has enough slots
-			//values[arrayNumber].reserve((*it)->size);
+			//The raw bits for this array will go in here
 			std::vector<unsigned char> data;
+			data.reserve((*it)->size);
 
 			//Loop over the bytes in the array
 			for(unsigned int byteNumber=0; byteNumber < (*it)->size; byteNumber++)
