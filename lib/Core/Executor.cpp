@@ -262,15 +262,16 @@ namespace {
 
   cl::opt<klee::Solver::SolverType> solverBackendToUse("solver",
 		  cl::desc("Choose which solver to use (default=stp)"),
-		  cl::values(clEnumValN(klee::Solver::STP,"stp","Use STP"),
-				  	 clEnumValN(klee::Solver::SMTLIBv2,"smtlibv2","Use SMTLIBv2 solver (see -solver-path)"),
+		  cl::values(clEnumValN(klee::Solver::STP,"stp","Use STP internally."),
+				  	 clEnumValN(klee::Solver::SMTLIBv2,"smtlibv2","Use an external SMTLIBv2 solver (see -solver-path)"),
 				  	 clEnumValEnd
 		  	  	  	),
 		  cl::init(klee::Solver::STP)
 		  );
 
   cl::opt<std::string> solverExecutablePath("solver-path",
-		  cl::desc("Set the path to the SMTLIBv2 solver executable. It must accept a .smt2 file as the first argument. See -solver option."),
+		  cl::desc("Set the path to the SMTLIBv2 solver executable. It must accept a .smt2 file as the "
+				  "first argument. See -solver option."),
 		  cl::init("")
   	  	  );
 }
@@ -347,7 +348,7 @@ Executor::Executor(const InterpreterOptions &opts,
   	  case Solver::SMTLIBv2 :
   		  //check the solver path has been specified on the command line
   		  if(solverExecutablePath.getValue().length() == 0)
-  			  klee_error("SMTLIBv2 solver executable path not specified (-solver-path)");
+  			  klee_error("SMTLIBv2 solver executable path not specified (see -solver-path)");
 
   		  baseSolver = new SMTLIBSolver(solverExecutablePath.getValue(),
   				interpreterHandler->getOutputFilename("query.smt2"),
