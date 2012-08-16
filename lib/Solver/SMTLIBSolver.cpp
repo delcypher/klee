@@ -257,7 +257,6 @@ namespace klee
 					if(sigprocmask(SIG_UNBLOCK,&alrm_mask,NULL) < 0)
 						klee_warning("failed to unblock ALRM");
 
-
 				}
 
 
@@ -273,16 +272,16 @@ namespace klee
 			//Check that the child terminated normally (i.e. not via a signal).
 			if(WIFEXITED(status))
 			{
-				if(WEXITSTATUS(status) ==0)
-				{
-					//We interpret an exit code of 0 as a successful run of the solver
-					return true;
-				}
-				else
-				{
-					klee_warning("SMTLIBSolverImpl: The solver execution failed.");
-					return false; //The solver failed
-				}
+				/* We cannot use the solver exit code (WEXITSTATUS(status)) to determine "failure"
+				 * because we may ask (check-sat) and go on to ask for array values as well (via (get-value () ).
+				 * If the solver returns "unsat" then it is incorrect to ask for array values which will result
+				 * in an error. The solver may give a bad exit code in this case but hopefully we still have parsable
+				 * output.
+				 */
+
+				//We interpret any exit code of as a successful run of the solver
+				return true;
+
 			}
 			else
 			{
