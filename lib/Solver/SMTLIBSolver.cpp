@@ -36,6 +36,12 @@ namespace klee
 
 		  timespec timeout;
 
+		  // This is the exit code we use for a failed execution of the child process
+		  // Hopefully it doesn't conflict with the exit code from any solver.
+		  const int specialExitCode=57;
+
+
+
 		  bool generateSMTLIBv2File(const Query& q, const std::vector<const Array*> arrays);
 		  bool invokeSolver();
 		  bool parseSolverOutput(const std::vector<const Array*> &objects,
@@ -271,12 +277,20 @@ namespace klee
 			//Check that the child terminated normally (i.e. not via a signal).
 			if(WIFEXITED(status))
 			{
-				/* We cannot use the solver exit code (WEXITSTATUS(status)) to determine "failure"
+				/* We cannot assume the solver exit code (WEXITSTATUS(status)) will be 0
 				 * because we may ask (check-sat) and go on to ask for array values as well (via (get-value () ).
 				 * If the solver returns "unsat" then it is incorrect to ask for array values which will result
 				 * in an error. The solver may give a bad exit code in this case but hopefully we still have parsable
 				 * output.
 				 */
+
+				//check for our specialExitCode that indicates the child process failed in some way.
+				if(WEXITSTATUS(status) == specialExitCode)
+				{
+					klee_error("SMTLIBSolverImpl: The solver could not be executed.");
+					return false;
+				}
+
 
 				//We interpret any exit code of as a successful run of the solver
 				return true;
@@ -284,7 +298,7 @@ namespace klee
 			}
 			else
 			{
-				klee_warning("SMTLIBSolverImpl: The Solver didn't exit normally.");
+				klee_error("SMTLIBSolverImpl: The Solver didn't exit normally.");
 				return false;
 			}
 
@@ -299,8 +313,8 @@ namespace klee
 			 */
 			if(sigprocmask(SIG_UNBLOCK,&mask,NULL) < 0)
 			{
-				klee_warning("SMTLIBSolverImpl: Child failed to re-enable SIGCHLD signal");
-				exit(EXIT_FAILURE);
+				klee_warning("SMTLIBSolverImpl (Child): Child failed to re-enable SIGCHLD signal");
+				exit(specialExitCode);
 			}
 
 			//open the output file (truncate it) for the child and have stdout go into it
@@ -316,13 +330,13 @@ namespace klee
 				{
 					case ENAMETOOLONG:
 						klee_warning("SMTLIBSolverImpl (child): The SMTLIBv2 solver path is too long!");
-						exit(EXIT_FAILURE);
+						exit(specialExitCode);
 					case ENOENT:
 						cerr << "SMTLIBSolverImpl (child): The executable " << pathToSolver << " does not exist!" << endl;
-						exit(EXIT_FAILURE);
+						exit(specialExitCode);
 					default:
 						cerr << "SMTLIBSolverImpl (child): Failed to invoke solver (" << pathToSolver << ")" << endl;
-						exit(EXIT_FAILURE);
+						exit(specialExitCode);
 				}
 			}
 
