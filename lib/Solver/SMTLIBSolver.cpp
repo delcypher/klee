@@ -101,10 +101,9 @@ namespace klee
   	{
   		timeout.tv_nsec = timeout.tv_sec = 0;
 
-  		//disabled because regression suite doesn't expect this.
-  		//cout << "Using external SMTLIBv2 Solver:" << pathToSolver << endl;
-  		//cout << "Path to SMTLIBv2 query file:" << pathToSolverInputFile << endl;
-  		//cout << "Path to SMTLIBv2 Solver response file:" << pathToSolverOutputFile << endl;
+  		cerr << "Using external SMTLIBv2 Solver:" << pathToSolver << endl;
+  		cerr << "Path to SMTLIBv2 query file:" << pathToSolverInputFile << endl;
+  		cerr << "Path to SMTLIBv2 Solver response file:" << pathToSolverOutputFile << endl;
   	}
 
   	void SMTLIBSolverImpl::giveUp()
