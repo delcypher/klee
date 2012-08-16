@@ -323,7 +323,11 @@ namespace klee
 			}
 
 			//open the output file (truncate it) for the child and have stdout go into it
-			freopen(pathToSolverOutputFile.c_str(),"w",stdout);
+			if(freopen(pathToSolverOutputFile.c_str(),"w",stdout)==NULL)
+			{
+				klee_error("SMTLIBSolverImpl (Child): Child failed to redirect stdout.");
+				exit(specialExitCode);
+			}
 
 			/* Invoke the solver. We pass it as the 1st argument the name of SMTLIBv2 file we generated
 			 * earlier.
