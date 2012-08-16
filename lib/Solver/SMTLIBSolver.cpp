@@ -74,7 +74,6 @@ namespace klee
 			const std::string& pathToInputTempFile) :
 	SolverWithTimeOut( new SMTLIBSolverImpl(pathToSolver,pathToOutputTempFile,pathToInputTempFile))
 	{
-		//check solver exists and is executable.
 	}
 
 	void SMTLIBSolver::setTimeout(double timeout)
@@ -96,7 +95,7 @@ namespace klee
   	{
   		timeout.tv_nsec = timeout.tv_sec = 0;
 
-  		cout << "Using Solver:" << pathToSolver << endl;
+  		cout << "Using external SMTLIBv2 Solver:" << pathToSolver << endl;
   		cout << "Path to SMTLIBv2 query file:" << pathToSolverInputFile << endl;
   		cout << "Path to SMTLIBv2 Solver response file:" << pathToSolverOutputFile << endl;
   	}
