@@ -38,9 +38,9 @@ namespace klee
 
 		  // This is the exit code we use for a failed execution of the child process
 		  // Hopefully it doesn't conflict with the exit code from any solver.
-		  const int specialExitCode=57;
+		  static const int specialExitCode=57;
 
-
+		  void giveUp();
 
 		  bool generateSMTLIBv2File(const Query& q, const std::vector<const Array*> arrays);
 		  bool invokeSolver();
@@ -104,6 +104,11 @@ namespace klee
   		cout << "Using external SMTLIBv2 Solver:" << pathToSolver << endl;
   		cout << "Path to SMTLIBv2 query file:" << pathToSolverInputFile << endl;
   		cout << "Path to SMTLIBv2 Solver response file:" << pathToSolverOutputFile << endl;
+  	}
+
+  	void SMTLIBSolverImpl::giveUp()
+  	{
+  		klee_error("SMTLIBSolverImpl: Giving up!");
   	}
 
   	void SMTLIBSolverImpl::setTimeout(double _timeout)
@@ -195,7 +200,7 @@ namespace klee
 		pid_t childPid = fork();
 		if(childPid == -1)
 		{
-			klee_warning("SMTLIBSolverImpl: Failed to fork!");
+			klee_error("SMTLIBSolverImpl: Failed to fork!");
 			return false;
 		}
 
@@ -248,7 +253,7 @@ namespace klee
 					}
 					else
 					{
-						klee_warning("SMTLIBSolverImpl: Something went wrong waiting for solver");
+						klee_error("SMTLIBSolverImpl: Something went wrong waiting for solver");
 						return false;
 					}
 
@@ -382,7 +387,8 @@ namespace klee
 				hasSolution=true;
 				break;
 			default:
-				klee_warning("SMTLIBSolverImpl : Unexpected token");
+				cerr << "SMTLIBSolverImpl : Unexpected token `" << lexer.getLastTokenContents() << "`" << endl;
+				giveUp();
 				return false;
 		}
 
@@ -420,7 +426,7 @@ namespace klee
 				{
 					if(!lexer.getNextToken(t) || t!=SMTLIBOutputLexer::LBRACKET_TOKEN)
 					{
-						klee_warning("SMTLIBSolverImpl: Lexer failed to get token for array assignment. Expected `(`");
+						klee_error("SMTLIBSolverImpl: Lexer failed to get token for array assignment. Expected `(`");
 						return false;
 					}
 				}
@@ -428,7 +434,7 @@ namespace klee
 				// Expect "select"
 				if(!lexer.getNextToken(t) || t!=SMTLIBOutputLexer::SELECT_TOKEN)
 				{
-					klee_warning("SMTLIBSolverImpl: Lexer failed to get token for array assignment. Expected `select`");
+					klee_error("SMTLIBSolverImpl: Lexer failed to get token for array assignment. Expected `select`");
 					return false;
 				}
 
@@ -437,9 +443,10 @@ namespace klee
 				   t!=SMTLIBOutputLexer::ARRAY_IDENTIFIER_TOKEN ||
 				   (*it)->name != lexer.getLastTokenContents())
 				{
-					klee_warning("SMTLIBSolverImpl: Lexer failed to get token for array assignment.");
-					cerr << "Expected array name `" << (*it)->name << "`. Instead received token `" << lexer.getLastTokenContents() <<
+					cerr << "SMTLIBSolverImpl: Lexer failed to get array identifier token." << endl <<
+							"Expected array name `" << (*it)->name << "`. Instead received token `" << lexer.getLastTokenContents() <<
 							"`" << endl;
+					giveUp();
 					return false;
 				}
 
@@ -454,13 +461,14 @@ namespace klee
 					klee_warning("SMTLIBSolverImpl : Lexer failed to get token for array assignment.");
 					cerr << "Expected (_ bv" << foundByteNumber << " " << (*it)->getDomain() << " ). Instead received"
 							"token " << lexer.getLastTokenContents() << endl;
+					giveUp();
 					return false;
 				}
 
 				//Expect ")"
 				if(!lexer.getNextToken(t) || t!=SMTLIBOutputLexer::RBRACKET_TOKEN)
 				{
-					klee_warning("SMTLIBSolverImpl: Lexer failed to get token for array assignment. Expected `)`");
+					klee_error("SMTLIBSolverImpl: Lexer failed to get token for array assignment. Expected `)`");
 					return false;
 				}
 
@@ -474,18 +482,22 @@ namespace klee
 						)
 				)
 				{
-					klee_warning("SMTLIBSolverImpl : Lexer failed to get token for array assignment.");
-					cerr << "Expected bitvector value." << endl;
+					klee_error("SMTLIBSolverImpl : Lexer failed to get token for array assignment."
+							     " Expected bitvector value.");
 					return false;
 				}
 
 				if(!lexer.getLastNumericValue(determinedByteValue))
 				{
-					klee_warning("SMTLIBSolverImpl : Lexer could not get the numeric value of the found bitvector constant");
+					klee_error("SMTLIBSolverImpl : Lexer could not get the numeric value of the "
+							     "found bitvector constant");
 					return false;
 				}
 
-				assert(determinedByteValue <= 255 && "Determined value for bitvector byte was out of range!"); //check in range
+				if(determinedByteValue > 255)
+				{
+					klee_error("SMTLIBSolverImpl: Determined value for bitvector byte was out of range!");
+				}
 
 				byteValue = determinedByteValue;
 
@@ -500,7 +512,7 @@ namespace klee
 				{
 					if(!lexer.getNextToken(t) || t!=SMTLIBOutputLexer::RBRACKET_TOKEN)
 					{
-						klee_warning("SMTLIBSolverImpl: Lexer failed to get token for array assignment. Expected `)`");
+						klee_error("SMTLIBSolverImpl: Lexer failed to get token for array assignment. Expected `)`");
 						return false;
 					}
 				}
@@ -526,7 +538,8 @@ namespace klee
 		//check we can write to it
 		if(output.bad())
 		{
-			klee_warning("Can't write output SMTLIBv2 file");
+			cerr << "Can't write output SMTLIBv2 (input to solver) " << pathToSolverInputFile << endl;
+			giveUp();
 			return false;
 		}
 
@@ -542,7 +555,7 @@ namespace klee
 
 		if(output.bad())
 		{
-			klee_warning("There was a problem writing the SMTLIBv2 file");
+			klee_error("There was a problem writing the SMTLIBv2 file");
 			return false;
 		}
 
