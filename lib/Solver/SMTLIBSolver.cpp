@@ -30,8 +30,8 @@ namespace klee
 	{
 		private:
 		  string pathToSolver;
-		  string pathToOutputTempFile; //< The .smt2 file
-		  string pathToInputTempFile; //< The result from the solver
+		  string pathToSolverInputFile; //< The .smt2 file
+		  string pathToSolverOutputFile; //< The result from the solver
 		  SMTLIBOutputLexer lexer;
 
 		  timespec timeout;
@@ -90,15 +90,15 @@ namespace klee
   			         const string& _pathToOutputTempFile,
   			         const string& _pathToInputTempFile
   					) : pathToSolver(_pathToSolver),
-  						pathToOutputTempFile(_pathToOutputTempFile),
-  						pathToInputTempFile(_pathToInputTempFile)
+  						pathToSolverInputFile(_pathToOutputTempFile),
+  						pathToSolverOutputFile(_pathToInputTempFile)
 
   	{
   		timeout.tv_nsec = timeout.tv_sec = 0;
 
   		cout << "Using Solver:" << pathToSolver << endl;
-  		cout << "Path to SMTLIBv2 query file:" << pathToOutputTempFile << endl;
-  		cout << "Path to SMTLIBv2 Solver response file:" << pathToInputTempFile << endl;
+  		cout << "Path to SMTLIBv2 query file:" << pathToSolverInputFile << endl;
+  		cout << "Path to SMTLIBv2 Solver response file:" << pathToSolverOutputFile << endl;
   	}
 
   	void SMTLIBSolverImpl::setTimeout(double _timeout)
@@ -305,12 +305,12 @@ namespace klee
 			}
 
 			//open the output file (truncate it) for the child and have stdout go into it
-			freopen(pathToInputTempFile.c_str(),"w",stdout);
+			freopen(pathToSolverOutputFile.c_str(),"w",stdout);
 
 			/* Invoke the solver. We pass it as the 1st argument the name of SMTLIBv2 file we generated
 			 * earlier.
 			 */
-			if(execlp(pathToSolver.c_str(), pathToSolver.c_str(), pathToOutputTempFile.c_str(), (char*) NULL) == -1)
+			if(execlp(pathToSolver.c_str(), pathToSolver.c_str(), pathToSolverInputFile.c_str(), (char*) NULL) == -1)
 			{
 				//We failed to invoke the solver
 				switch(errno)
@@ -337,7 +337,7 @@ namespace klee
 			bool &hasSolution)
 	{
 		//open the output from the solver ready to parse
-		ifstream file(pathToInputTempFile.c_str());
+		ifstream file(pathToSolverOutputFile.c_str());
 
 		if(!file.good())
 			return false;
@@ -508,7 +508,7 @@ namespace klee
 	bool SMTLIBSolverImpl::generateSMTLIBv2File(const Query& q, const std::vector<const Array*> arrays)
 	{
 		//open output SMTLIBv2 file and truncate it
-		ofstream output(pathToOutputTempFile.c_str(),ios_base::trunc);
+		ofstream output(pathToSolverInputFile.c_str(),ios_base::trunc);
 
 		//check we can write to it
 		if(output.bad())
