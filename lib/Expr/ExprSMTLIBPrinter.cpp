@@ -269,10 +269,10 @@ namespace klee
 			case Expr::Add: return "bvadd";
 			case Expr::Sub: return "bvneg";
 			case Expr::Mul: return "bvmul";
-			case Expr::UDiv: return "budiv";
-			case Expr::SDiv: return "bsdiv";
-			case Expr::URem: return "burem";
-			case Expr::SRem: return "bsrem";
+			case Expr::UDiv: return "bvudiv";
+			case Expr::SDiv: return "bvsdiv";
+			case Expr::URem: return "bvurem";
+			case Expr::SRem: return "bvsrem";
 
 			//There is a little ambiguity in the Expr classes.
 			//It is not clear if NotExpr, AndExpr, OrExpr and XorExpr are bitwise or logical operators.
