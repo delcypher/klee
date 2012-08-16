@@ -342,7 +342,9 @@ Executor::Executor(const InterpreterOptions &opts,
   Solver* baseSolver=0;
 
   //check if solver Executable path has been set, if so force SMTLIBv2 solver
-  if(solverExecutablePath.getValue().length() != 0)
+  if(solverExecutablePath.getValue().length() != 0 &&
+		  !(solverBackendToUse.getNumOccurrences() > 0 && solverBackendToUse==Solver::STP)
+	)
 	  solverBackendToUse=Solver::SMTLIBv2;
 
   switch(solverBackendToUse)
