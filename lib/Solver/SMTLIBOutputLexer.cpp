@@ -355,7 +355,7 @@ bool SMTLIBOutputLexer::getLastNumericValue(unsigned long int& value)
 
 	bool SMTLIBOutputLexer::isIdentifier(char c)
 	{
-		return (isalnum(c) || c == '_' || c == '-');
+		return (isalnum(c) || c == '_' || c == '-' || c == '.');
 	}
 
 }
