@@ -360,12 +360,10 @@ namespace klee
 		{
 			case SMTLIBOutputLexer::UNKNOWN_TOKEN:
 				klee_warning("SMTLIBSolverImpl : Solver responded unknown");
-				file.close();
 				return false;
 			case SMTLIBOutputLexer::UNSAT_TOKEN:
 				//not satisfiable
 				hasSolution=false;
-				file.close();
 				return true;
 			case SMTLIBOutputLexer::SAT_TOKEN:
 				hasSolution=true;
@@ -379,7 +377,6 @@ namespace klee
 		if(objects.empty())
 		{
 			//we weren't ask to get any values
-			file.close();
 			return true;
 		}
 
@@ -505,7 +502,6 @@ namespace klee
 		}
 
 		//We found satisfiability and determined the array values successfully.
-		file.close();
 		return true;
 	}
 
