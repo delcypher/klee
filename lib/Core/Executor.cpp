@@ -345,7 +345,7 @@ Executor::Executor(const InterpreterOptions &opts,
   	  	  break;
   	  case Solver::SMTLIBv2 :
   		  //check the solver path has been specified on the command line
-  		  if(solverExecutablePath.getNumOccurrences() ==0)
+  		  if(solverExecutablePath.getValue().length() == 0)
   			  klee_error("SMTLIBv2 solver executable path not specified (-solver-path)");
 
   		  baseSolver = new SMTLIBSolver(solverExecutablePath.getValue(),
