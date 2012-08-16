@@ -221,8 +221,9 @@ namespace {
            cl::init(0));
   
   cl::opt<double>
-  MaxSTPTime("max-stp-time",
-             cl::desc("Maximum amount of time for a single query (default=0s (off)). Enables --use-forked-stp"),
+  MaxSTPTime("max-solver-time",
+             cl::desc("Maximum amount of time for a single query (default=0s (off)). Enables --use-forked-stp if"
+            		 " using stp as solver."),
              cl::init(0.0));
   
   cl::opt<unsigned int>
