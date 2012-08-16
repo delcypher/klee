@@ -180,7 +180,7 @@ namespace klee {
 
 			///This method does the translation between Expr classes and SMTLIBv2 keywords
 			/// \return A C-string of the SMTLIBv2 keyword
-			virtual const char* getSMTLIBKeyword(Expr::Kind k);
+			virtual const char* getSMTLIBKeyword(const ref<Expr>& e);
 
 			virtual void printSeperator();
 

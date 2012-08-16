@@ -147,7 +147,7 @@ namespace klee
 
 	void ExprSMTLIBPrinter::printReadExpr(const ref<ReadExpr>& e)
 	{
-		p << "(" << getSMTLIBKeyword(e->getKind()) << " ";
+		p << "(" << getSMTLIBKeyword(e) << " ";
 		p.pushIndent();
 
 		printSeperator();
@@ -169,7 +169,7 @@ namespace klee
 		unsigned int lowIndex= e->offset;
 		unsigned int highIndex= lowIndex + e->width -1;
 
-		p << "((_ " << getSMTLIBKeyword(e->getKind()) << " " << highIndex << "  " << lowIndex << ") ";
+		p << "((_ " << getSMTLIBKeyword(e) << " " << highIndex << "  " << lowIndex << ") ";
 
 		p.pushIndent(); //add indent for recursive call
 		printSeperator();
@@ -200,7 +200,7 @@ namespace klee
 		 */
 		unsigned int numExtraBits= (e->width) - (e->src->getWidth());
 
-		p << "((_ " << getSMTLIBKeyword(e->getKind()) << " " <<
+		p << "((_ " << getSMTLIBKeyword(e) << " " <<
 				numExtraBits << ") ";
 
 		p.pushIndent(); //add indent for recursive call
@@ -219,7 +219,7 @@ namespace klee
 	{
 		p << "(not (";
 		p.pushIndent();
-		p << getSMTLIBKeyword(Expr::Eq) << " ";
+		p << "=" << " ";
 		p.pushIndent();
 		printSeperator();
 
@@ -237,7 +237,7 @@ namespace klee
 
 	void ExprSMTLIBPrinter::printOtherExpr(const ref<Expr>& e)
 	{
-		p << "(" << getSMTLIBKeyword(e->getKind()) << " ";
+		p << "(" << getSMTLIBKeyword(e) << " ";
 		p.pushIndent(); //add indent for recursive call
 
 		//loop over children and recurse into each
@@ -252,9 +252,12 @@ namespace klee
 		p << ")";
 	}
 
-	const char* ExprSMTLIBPrinter::getSMTLIBKeyword(Expr::Kind k)
+	const char* ExprSMTLIBPrinter::getSMTLIBKeyword(const ref<Expr>& e)
 	{
-		switch(k)
+		//Check if the children (lazy check) are boolean
+		bool hasBooleanArguments= e->getKid(0)->getWidth() == Expr::Bool;
+
+		switch(e->getKind())
 		{
 			case Expr::Read: return "select";
 			case Expr::Select: return "ite";
@@ -271,10 +274,15 @@ namespace klee
 			case Expr::URem: return "burem";
 			case Expr::SRem: return "bsrem";
 
-			case Expr::Not: return "bvnot";
-			case Expr::And: return "bvand";
-			case Expr::Or:  return "bvor";
-			case Expr::Xor: return "bvxor";
+			//There is a little ambiguity in the Expr classes.
+			//It is not clear if NotExpr, AndExpr, OrExpr and XorExpr are bitwise or logical operators.
+			// We resolve this by examining the children
+			case Expr::Not: return hasBooleanArguments?"not":"bvnot";
+			case Expr::And: return hasBooleanArguments?"and":"bvand";
+			case Expr::Or:  return hasBooleanArguments?"or":"bvor";
+			case Expr::Xor: return hasBooleanArguments?"xor":"bvxor";
+
+
 			case Expr::Shl: return "bvshl";
 			case Expr::LShr: return "bvlshr";
 			case Expr::AShr: return "bvashr";
