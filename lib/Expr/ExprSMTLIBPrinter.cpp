@@ -267,7 +267,7 @@ namespace klee
 			case Expr::SExt: return "sign_extend";
 
 			case Expr::Add: return "bvadd";
-			case Expr::Sub: return "bvneg";
+			case Expr::Sub: return "bvsub";
 			case Expr::Mul: return "bvmul";
 			case Expr::UDiv: return "bvudiv";
 			case Expr::SDiv: return "bvsdiv";
