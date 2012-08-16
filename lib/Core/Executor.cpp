@@ -3372,18 +3372,27 @@ void Executor::getConstraintLog(const ExecutionState &state,
   {
   case STP:
   {
+	  Query query(state.constraints, ConstantExpr::alloc(0, Expr::Bool));
+	  char* log=NULL;
 	  //check that we are using STP as our solver
 	  if(solver->baseSolver->getType() == Solver::STP)
 	  {
-		  Query query(state.constraints, ConstantExpr::alloc(0, Expr::Bool));
-		  char *log = static_cast<STPSolver*>(solver->baseSolver)->getConstraintLog(query);
-		  res = std::string(log);
-		  free(log);
+		  //use the existing STP solver
+		  log = static_cast<STPSolver*>(solver->baseSolver)->getConstraintLog(query);
 	  }
 	  else
 	  {
-		  klee_warning("Not using STP solver. Cannot generate .cvc file!");
+		  //No STP solver available. Make a new one
+
+		  klee_warning("Not using STP solver. Creating (and then deleting) new STP solver to generate .cvc file");
+		  //should automatically delete when it goes out of scope
+		  STPSolver s(UseForkedSTP, STPOptimizeDivides);
+		  log = s.getConstraintLog(query);
 	  }
+
+
+	  res = std::string(log);
+	  free(log);
   }
 	  break;
 
