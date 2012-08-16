@@ -271,7 +271,7 @@ namespace {
 
   cl::opt<std::string> solverExecutablePath("solver-path",
 		  cl::desc("Set the path to the SMTLIBv2 solver executable. It must accept a .smt2 file as the "
-				  "first argument. See -solver option."),
+				  "first argument. This implies -solver=smtlibv2"),
 		  cl::init("")
   	  	  );
 }
@@ -340,6 +340,11 @@ Executor::Executor(const InterpreterOptions &opts,
 
   //Decide which solver base we will use
   Solver* baseSolver=0;
+
+  //check if solver Executable path has been set, if so force SMTLIBv2 solver
+  if(solverExecutablePath.getValue().length() != 0)
+	  solverBackendToUse=Solver::SMTLIBv2;
+
   switch(solverBackendToUse)
   {
   	  case Solver::STP :
