@@ -22,6 +22,8 @@
 
 #include "SMTLIBOutputLexer.h"
 
+#include "SolverStats.h"
+
 
 using namespace std;
 namespace klee
@@ -165,6 +167,11 @@ namespace klee
 							std::vector< std::vector<unsigned char> > &values,
 							bool &hasSolution)
 	{
+		//update statistics
+		++stats::queries;
+		//we only query for a "counter example" is objects is not empty!
+		if(!objects.empty()) ++stats::queryCounterexamples;
+
 		if(!generateSMTLIBv2File(query,objects))
 			return false;
 
@@ -173,6 +180,16 @@ namespace klee
 
 		if(!parseSolverOutput(objects,values,hasSolution))
 			return false;
+
+		/* Odd but this is how the reset of klee works
+		 * sat == INVALID
+		 * unsat == VALID
+		 */
+	    if (hasSolution)
+	      ++stats::queriesInvalid;
+	    else
+	      ++stats::queriesValid;
+
 
 		return true;
 	}
