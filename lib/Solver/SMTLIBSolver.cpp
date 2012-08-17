@@ -256,6 +256,11 @@ namespace klee
 						/* The Solver timed out */
 						kill(childPid,SIGKILL); //Kill the child.
 						klee_warning("SMTLIBSolverImpl: Solver timed out!");
+
+						//hack allow SIGALRM again
+						if(sigprocmask(SIG_UNBLOCK,&alrm_mask,NULL) < 0)
+							klee_warning("failed to unblock ALRM");
+
 						return false; //For now we'll tell KLEE we failed (fixme maybe?)
 					}
 					else
