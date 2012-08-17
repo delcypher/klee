@@ -3384,7 +3384,7 @@ void Executor::getConstraintLog(const ExecutionState &state,
 	  }
 	  else
 	  {
-		  klee_warning("Not using STP solver. Cannot generate .cvc file!");
+		  klee_error("Not using STP solver. Cannot generate .cvc file!");
 	  }
   }
 	  break;
