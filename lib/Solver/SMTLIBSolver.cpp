@@ -196,6 +196,13 @@ namespace klee
 		}
 
 
+		/* before we fork we need to flush stdout.
+		 * If we don't the parent and child have the unflushed stdout
+		 * which can get outputted twice because both the parent and child flush stdout
+		 * see http://stackoverflow.com/questions/3513242/working-of-fork-in-linux-gcc
+		 */
+		fflush(stdout);
+
 		//Perform fork
 		pid_t childPid = fork();
 		if(childPid == -1)
