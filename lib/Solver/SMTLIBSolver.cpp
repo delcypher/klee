@@ -37,12 +37,15 @@ namespace klee
 		  SMTLIBOutputLexer lexer;
 
 		  timespec timeout;
+		  timespec startTime;
 
 		  // This is the exit code we use for a failed execution of the child process
 		  // Hopefully it doesn't conflict with the exit code from any solver.
 		  static const int specialExitCode=57;
 
 		  void giveUp();
+
+		  bool haveRunOutOfTime();
 
 		  bool generateSMTLIBv2File(const Query& q, const std::vector<const Array*> arrays);
 		  bool invokeSolver();
@@ -172,6 +175,7 @@ namespace klee
 		//we only query for a "counter example" is objects is not empty!
 		if(!objects.empty()) ++stats::queryCounterexamples;
 
+
 		if(!generateSMTLIBv2File(query,objects))
 			return false;
 
@@ -197,21 +201,11 @@ namespace klee
 
 	bool SMTLIBSolverImpl::invokeSolver()
 	{
-		/* We need to block the SIGCHLD signal so that the parent receives the signal when it is
-		 * ready for it and not before (e.g. child could finish before parent calls waitpid() )
-		 */
-		sigset_t mask;
-		sigemptyset(&mask);
-		sigaddset(&mask,SIGCHLD);
-
-		int status=0;
-
-		if(sigprocmask(SIG_BLOCK,&mask,NULL) < 0)
+		//Record the start time
+		if(clock_gettime(CLOCK_MONOTONIC,&startTime)==-1)
 		{
-			klee_warning("SMTLIBSolverImpl: Failed to block SIGCHLD");
-			return false;
+			cerr << "SMTLIBSolverImpl: Failed to record start time." << endl;
 		}
-
 
 		/* before we fork we need to flush stdout.
 		 * If we don't the parent and child have the unflushed stdout
@@ -219,6 +213,7 @@ namespace klee
 		 * see http://stackoverflow.com/questions/3513242/working-of-fork-in-linux-gcc
 		 */
 		fflush(stdout);
+		fflush(stderr);
 
 		//Perform fork
 		pid_t childPid = fork();
@@ -230,79 +225,31 @@ namespace klee
 
 		if(childPid > 0)
 		{
-			//HACK. KLEE's request of SIGALRM interupts sigtimedwait() and sigwaitinfo()
-			//We disable it here just to make the code here work as its supposed to.
-			//FIXME
-			sigset_t alrm_mask;
-			sigemptyset(&alrm_mask);
-			sigaddset(&alrm_mask,SIGALRM);
-			if(sigprocmask(SIG_BLOCK,&alrm_mask,NULL) < 0)
-				klee_warning("failed to block ALRM");
+			//parent code
+			int status=0;
+			int result=0;
 
-
-			//Parent code
-			while(true)
+			/* This is a disgusting waste of CPU time. We've effectively got a polling wait
+			 * because KLEE has an interval timer set (see ExecutorTimers.cpp) to emit SIGALRM
+			 * periodically which interrupts waitpid()
+			 *
+			 * A more elegant solution than using waitpid() is to use sigtimedwait() (in conjunction
+			 * with waitpid() so we reap the child) for the timedwait but this requires that we block
+			 * SIGALRM which disrupts KLEE keeping track of time. For now this will do
+			 */
+			do
 			{
-				signed int signalReceived=0;
-				//Wait for child
-				if(timeout.tv_sec > 0)
-				{
-					//Suspend with timeout
-					signalReceived = sigtimedwait(&mask,NULL,&timeout);
-				}
-				else
-				{
-					//There is no timeout, just suspend until we get a signal
-					signalReceived = sigwaitinfo(&mask,NULL);
-				}
+				result=waitpid(childPid,&status,0);
+			} while(result == -1 && errno == EINTR && !haveRunOutOfTime());
 
-
-				if( signalReceived < 0)
-				{
-
-					if(errno ==EINTR)
-					{
-						/*We were interrupted by another signal that wasn't SIGCHLD.
-						 *  For now we will just restart the timeout.
-						 */
-						klee_warning("SMTLIBSolverImpl: Interrupted by unexpected signal.");
-						continue;//restart the loop
-					}
-					else if(errno==EAGAIN)
-					{
-						/* The Solver timed out */
-						kill(childPid,SIGKILL); //Kill the child.
-						klee_warning("SMTLIBSolverImpl: Solver timed out!");
-
-						//hack allow SIGALRM again
-						if(sigprocmask(SIG_UNBLOCK,&alrm_mask,NULL) < 0)
-							klee_warning("failed to unblock ALRM");
-
-						return false; //For now we'll tell KLEE we failed (fixme maybe?)
-					}
-					else
-					{
-						klee_error("SMTLIBSolverImpl: Something went wrong waiting for solver");
-						return false;
-					}
-
-				}
-				else
-				{
-					//The child "finished" without timing out. We're not handling special cases.
-					break;
-
-					//hack allow SIGALRM again
-					if(sigprocmask(SIG_UNBLOCK,&alrm_mask,NULL) < 0)
-						klee_warning("failed to unblock ALRM");
-
-				}
-
-
+			if(haveRunOutOfTime())
+			{
+				klee_warning("SMTLIBSolverImpl: The Solver timed out!");
+				return false;
 			}
 
 			//Now we will do a clean up of the child process.
-			if(waitpid(childPid,&status,WNOHANG) < 0 )
+			if(result < 0 )
 			{
 				klee_warning("SMTLIBSolverImpl: Failed to clean up child process.");
 				return false;
@@ -326,7 +273,7 @@ namespace klee
 				}
 
 
-				//We interpret any exit code of as a successful run of the solver
+				//We interpret any exit code (except the specialExitCode) of as a successful run of the solver
 				return true;
 
 			}
@@ -341,15 +288,6 @@ namespace klee
 		{
 			//child code
 
-			/* reenable SIGCHLD (the mask is preserved across execv and fork)
-			 * so the solver might do its own forking and we don't want to mess with
-			 * that!
-			 */
-			if(sigprocmask(SIG_UNBLOCK,&mask,NULL) < 0)
-			{
-				klee_warning("SMTLIBSolverImpl (Child): Child failed to re-enable SIGCHLD signal");
-				exit(specialExitCode);
-			}
 
 			//open the output file (truncate it) for the child and have stdout go into it
 			if(freopen(pathToSolverOutputFile.c_str(),"w",stdout)==NULL)
@@ -596,6 +534,27 @@ namespace klee
 		return true;
 	}
 
+	bool SMTLIBSolverImpl::haveRunOutOfTime()
+	{
+		timespec currentTime;
+		timespec elapsedTime;
+		if(clock_gettime(CLOCK_MONOTONIC,&currentTime)==-1)
+		{
+			cerr << "SMTLIBSolverImpl: Couldn't determine current time!" << endl;
+			return true;
+		}
+
+		if(timeout.tv_sec == 0)
+			return false; //The timeout is disabled, we can never run out of time!
+
+		elapsedTime.tv_sec = (currentTime.tv_sec - startTime.tv_sec) +1;
+		//ignore nanoseconds.
+		if(elapsedTime.tv_sec > timeout.tv_sec)
+			return true; //we've run out of time.
+		else
+			return false;//we've got some time left.
+	}
 
 }
+
 
