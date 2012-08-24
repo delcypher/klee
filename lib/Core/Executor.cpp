@@ -89,7 +89,8 @@ using namespace klee;
 namespace {
   cl::opt<bool>
   DumpStatesOnHalt("dump-states-on-halt",
-                   cl::init(true));
+                   cl::init(true),
+		   cl::desc("Dump test cases for all active states on exit (default=on)"));
  
   cl::opt<bool>
   NoPreferCex("no-prefer-cex",
@@ -105,7 +106,8 @@ namespace {
  
   cl::opt<bool>
   AllowExternalSymCalls("allow-external-sym-calls",
-                        cl::init(false));
+                        cl::init(false),
+			cl::desc("Allow calls with symbolic arguments to external functions.  This concretizes the symbolic arguments.  (default=off)"));
 
   cl::opt<bool>
   DebugPrintInstructions("debug-print-instructions", 
@@ -135,48 +137,52 @@ namespace {
 
   cl::opt<bool>
   OnlyOutputStatesCoveringNew("only-output-states-covering-new",
-                              cl::init(false));
-
-  cl::opt<bool>
-  AlwaysOutputSeeds("always-output-seeds",
-                              cl::init(true));
+                              cl::init(false),
+			      cl::desc("Only output test cases covering new code."));
 
   cl::opt<bool>
   UseFastCexSolver("use-fast-cex-solver",
-		   cl::init(false));
+		   cl::init(false),
+		   cl::desc("(default=off"));
 
   cl::opt<bool>
   UseIndependentSolver("use-independent-solver",
                        cl::init(true),
-		       cl::desc("Use constraint independence"));
+		       cl::desc("Use constraint independence (default=on)"));
 
   cl::opt<bool>
   EmitAllErrors("emit-all-errors",
                 cl::init(false),
                 cl::desc("Generate tests cases for all errors "
-                         "(default=one per (error,instruction) pair)"));
+                         "(default=off, i.e. one per (error,instruction) pair)"));
 
   cl::opt<bool>
   UseCexCache("use-cex-cache",
               cl::init(true),
-	      cl::desc("Use counterexample caching"));
+	      cl::desc("Use counterexample caching (default=on)"));
 
   cl::opt<bool>
   UseQueryPCLog("use-query-pc-log",
-                cl::init(false));
+                cl::init(false),
+		cl::desc("Log all queries into queries.pc (default=off)"));
   
   cl::opt<bool>
   UseSTPQueryPCLog("use-stp-query-pc-log",
-                   cl::init(false));
+                   cl::init(false),
+		   cl::desc("Log all queries sent to STP into queries.pc (default=off)"));
 
   cl::opt<bool>
   NoExternals("no-externals", 
-           cl::desc("Do not allow external functin calls"));
+           cl::desc("Do not allow external function calls (default=off)"));
 
   cl::opt<bool>
   UseCache("use-cache",
 	   cl::init(true),
-	   cl::desc("Use validity caching"));
+	   cl::desc("Use validity caching (default=on)"));
+
+  cl::opt<bool>
+  AlwaysOutputSeeds("always-output-seeds",
+		    cl::init(true));
 
   cl::opt<bool>
   OnlyReplaySeeds("only-replay-seeds", 
@@ -228,36 +234,36 @@ namespace {
   
   cl::opt<unsigned int>
   StopAfterNInstructions("stop-after-n-instructions",
-                         cl::desc("Stop execution after specified number of instructions (0=off)"),
+                         cl::desc("Stop execution after specified number of instructions (default=0 (off))"),
                          cl::init(0));
   
   cl::opt<unsigned>
   MaxForks("max-forks",
-           cl::desc("Only fork this many times (-1=off)"),
+           cl::desc("Only fork this many times (default=-1 (off))"),
            cl::init(~0u));
   
   cl::opt<unsigned>
   MaxDepth("max-depth",
-           cl::desc("Only allow this many symbolic branches (0=off)"),
+           cl::desc("Only allow this many symbolic branches (default=0 (off))"),
            cl::init(0));
   
   cl::opt<unsigned>
   MaxMemory("max-memory",
-            cl::desc("Refuse to fork when more above this about of memory (in MB, 0=off)"),
+            cl::desc("Refuse to fork when above this amount of memory (in MB, default=0 (off))"),
             cl::init(0));
 
   cl::opt<bool>
   MaxMemoryInhibit("max-memory-inhibit",
-            cl::desc("Inhibit forking at memory cap (vs. random terminate)"),
+            cl::desc("Inhibit forking at memory cap (vs. random terminate) (default=on)"),
             cl::init(true));
 
   cl::opt<bool>
-  UseForkedSTP("use-forked-stp", 
-                 cl::desc("Run STP in a forked process (default=off)"));
+  UseForkedSTP("use-forked-stp",
+	       cl::desc("Run STP in a forked process (default=off)"));
 
   cl::opt<bool>
   STPOptimizeDivides("stp-optimize-divides", 
-                 cl::desc("Optimize constant divides into add/shift/multiplies before passing to STP"),
+                 cl::desc("Optimize constant divides into add/shift/multiplies before passing to STP (default=on)"),
                  cl::init(true));
 
   cl::opt<klee::Solver::SolverType> solverBackendToUse("solver",
@@ -769,7 +775,7 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
   solver->setTimeout(0);
   if (!success) {
     current.pc = current.prevPC;
-    terminateStateEarly(current, "query timed out");
+    terminateStateEarly(current, "Query timed out (fork).");
     return StatePair(0, 0);
   }
 
@@ -946,8 +952,8 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
 
     // Kinda gross, do we even really still want this option?
     if (MaxDepth && MaxDepth<=trueState->depth) {
-      terminateStateEarly(*trueState, "max-depth exceeded");
-      terminateStateEarly(*falseState, "max-depth exceeded");
+      terminateStateEarly(*trueState, "max-depth exceeded.");
+      terminateStateEarly(*falseState, "max-depth exceeded.");
       return StatePair(0, 0);
     }
 
@@ -2195,7 +2201,7 @@ void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
     llvm::APFloat Arg(arg->getAPValue());
     uint64_t value = 0;
     bool isExact = true;
-    Arg.convertToInteger(&value, resultType, false,
+    Arg.convertToInteger(&value, resultType, true,
                          llvm::APFloat::rmTowardZero, &isExact);
     bindLocal(ki, state, ConstantExpr::alloc(value, resultType));
     break;
@@ -2577,7 +2583,7 @@ void Executor::run(ExecutionState &initialState) {
                 idx = rand() % N;
 
               std::swap(arr[idx], arr[N-1]);
-              terminateStateEarly(*arr[N-1], "memory limit");
+              terminateStateEarly(*arr[N-1], "Memory limit exceeded.");
             }
           }
           atMemoryLimit = true;
@@ -2601,7 +2607,7 @@ void Executor::run(ExecutionState &initialState) {
          it != ie; ++it) {
       ExecutionState &state = **it;
       stepInstruction(state); // keep stats rolling
-      terminateStateEarly(state, "execution halting");
+      terminateStateEarly(state, "Execution halting.");
     }
     updateStates(0);
   }
@@ -3088,7 +3094,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     solver->setTimeout(0);
     if (!success) {
       state.pc = state.prevPC;
-      terminateStateEarly(state, "query timed out");
+      terminateStateEarly(state, "Query timed out (bounds check).");
       return;
     }
 
@@ -3161,7 +3167,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   // XXX should we distinguish out of bounds and overlapped cases?
   if (unbound) {
     if (incomplete) {
-      terminateStateEarly(*unbound, "query timed out (resolve)");
+      terminateStateEarly(*unbound, "Query timed out (resolve).");
     } else {
       terminateStateOnError(*unbound,
                             "memory error: out of bound pointer",
