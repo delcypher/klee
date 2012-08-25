@@ -16,22 +16,17 @@ namespace klee {
 	///This printer does not abbreviate expressions.
 	///
 	/// It is ended to be used as follows
-	/// -# Create instance of this class for a particular query and output stream
+	/// -# Create instance of this class
+	/// -# Set output ( setOutput() )
+	/// -# Set query to print ( setQuery() )
 	/// -# Set options using the methods prefixed with the word "set".
 	/// -# Call generateOutput()
 	///
-	/// This class can only be used for one query.
+	/// The class can then be used again on another query ( setQuery() ).
+	/// The options set are persistent across queries (apart from setArrayValuesToGet() )
 	class ExprSMTLIBPrinter
 	{
 		public:
-			///Output stream to write to
-			std::ostream& o;
-
-			///The query to print
-			const Query& query;
-
-			///Contains the arrays found during scans
-			std::set<const Array*> usedArrays;
 
 			///Different SMTLIBv2 logics supported by this class
 			/// \sa setLogic()
@@ -60,19 +55,29 @@ namespace klee {
 
 
 			///Allows the way Constant bitvectors are printed to be changed.
+			///This setting is persistent across queries.
 			/// \return true if setting the mode was successful
 			bool setConstantDisplayMode(ConstantDisplayMode cdm);
 
 			ConstantDisplayMode getConstantDisplayMode() { return cdm;}
 
-			///Create a new printer that will print a query in the SMTLIBv2 language to a std::ostream
-			/// \param output is the output stream that will be written to.
-			/// \param q is the query that will be printed.
-			ExprSMTLIBPrinter(std::ostream& output, const Query& q);
+			///Create a new printer that will print a query in the SMTLIBv2 language.
+			ExprSMTLIBPrinter();
 
-			virtual ~ExprSMTLIBPrinter() { }
+			///Set the output stream that will be printed to.
+			///This call is persistent across queries.
+			void setOutput(std::ostream& output);
+
+			///Set the query to print. This will setArrayValuesToGet()
+			///to none (i.e. no array values will be requested using
+			///the SMTLIBv2 (get-value ()) command).
+			void setQuery(const Query& q);
+
+			virtual ~ExprSMTLIBPrinter();
 
 			/// Print the query to the std::ostream
+			/// setOutput() and setQuery() must be called before calling this.
+			///
 			/// All options should be set before calling this.
 			/// \sa setConstantDisplayMode
 			/// \sa setLogic()
@@ -118,10 +123,22 @@ namespace klee {
 			/// via (get-value ()) SMTLIBv2 command in the output stream in the same order as vector.
 			void setArrayValuesToGet(const std::vector<const Array*>& a);
 
+			/// \return True if human readable mode is switched on
 			bool isHumanReadable();
 
 
 		protected:
+			///Contains the arrays found during scans
+			std::set<const Array*> usedArrays;
+
+			///Output stream to write to
+			std::ostream* o;
+
+			///The query to print
+			const Query* query;
+
+			//Resets various internal objects for a new query
+			virtual void reset();
 
 			//Scan all constraints and the query
 			virtual void scanAll();
@@ -192,7 +209,7 @@ namespace klee {
 			virtual void scanUpdates(const UpdateNode* un);
 
 			///Helper printer class
-			PrintContext p;
+			PrintContext* p;
 
 			///This contains the query from the solver but negated for our purposes.
 			/// \sa mangleQuery()

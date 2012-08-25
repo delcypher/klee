@@ -7,10 +7,12 @@ namespace klee
 	class ExprSMTLIBLetPrinter : public ExprSMTLIBPrinter
 	{
 		public:
-			ExprSMTLIBLetPrinter(std::ostream& o, const Query& q);
+			ExprSMTLIBLetPrinter();
+			virtual ~ExprSMTLIBLetPrinter() { }
 			virtual void generateOutput();
 		protected:
 			virtual void scan(const ref<Expr>& e);
+			virtual void reset();
 			virtual void generateBindings();
 			void printExpression(const ref<Expr>& e);
 			void printLetExpression();

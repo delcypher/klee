@@ -29,12 +29,41 @@ namespace
 namespace klee
 {
 
-	ExprSMTLIBPrinter::ExprSMTLIBPrinter(std::ostream& output, const Query& q) :
-		o(output), query(q), usedArrays(), p(output), haveConstantArray(false), logicToUse(QF_AUFBV),
+	ExprSMTLIBPrinter::ExprSMTLIBPrinter() :
+		usedArrays(), o(NULL), query(NULL), p(NULL), haveConstantArray(false), logicToUse(QF_AUFBV),
 		humanReadable(true), smtlibBoolOptions(), arraysToCallGetValueOn(NULL)
 	{
 		setConstantDisplayMode(argConstantDisplayMode);
+	}
+
+	ExprSMTLIBPrinter::~ExprSMTLIBPrinter()
+	{
+		if(p!=NULL)
+			delete p;
+	}
+
+	void ExprSMTLIBPrinter::setOutput(std::ostream& output)
+	{
+		o = &output;
+		if(p!=NULL)
+			delete p;
+
+		p = new PrintContext(output);
+	}
+
+	void ExprSMTLIBPrinter::setQuery(const Query& q)
+	{
+		query = &q;
+		reset(); // clear the data structures
+		scanAll();
 		mangleQuery();
+	}
+
+	void ExprSMTLIBPrinter::reset()
+	{
+		usedArrays.clear();
+		haveConstantArray=false;
+		arraysToCallGetValueOn=NULL;
 	}
 
 	bool ExprSMTLIBPrinter::isHumanReadable()
@@ -57,13 +86,13 @@ namespace klee
 
 		if(e->isTrue())
 		{
-			p << "true";
+			*p << "true";
 			return;
 		}
 
 		if(e->isFalse())
 		{
-			p << "false";
+			*p << "false";
 			return;
 		}
 
@@ -82,30 +111,30 @@ namespace klee
 		{
 			case BINARY:
 				e->toString(value,2);
-				p << "#b";
+				*p << "#b";
 
 				zeroPad = e->getWidth() - value.length();
 
 				for(unsigned int count=0; count < zeroPad; count++)
-					p << "0";
+					*p << "0";
 
-				p << value ;
+				*p << value ;
 				break;
 
 			case HEX:
 				e->toString(value,16);
-				p << "#x";
+				*p << "#x";
 
 				zeroPad =  (e->getWidth() / 4) - value.length();
 				for(unsigned int count=0; count < zeroPad; count++)
-					p << "0";
+					*p << "0";
 
-				p << value ;
+				*p << value ;
 				break;
 
 			case DECIMAL:
 				e->toString(value,10);
-				p << "(_ bv" << value<< " " << e->getWidth() << ")";
+				*p << "(_ bv" << value<< " " << e->getWidth() << ")";
 				break;
 
 			default:
@@ -152,8 +181,8 @@ namespace klee
 
 	void ExprSMTLIBPrinter::printReadExpr(const ref<ReadExpr>& e)
 	{
-		p << "(" << getSMTLIBKeyword(e) << " ";
-		p.pushIndent();
+		*p << "(" << getSMTLIBKeyword(e) << " ";
+		p->pushIndent();
 
 		printSeperator();
 
@@ -164,9 +193,9 @@ namespace klee
 		printSeperator();
 		printExpression(e->index);
 
-		p.popIndent();
+		p->popIndent();
 		printSeperator();
-		p << ")";
+		*p << ")";
 	}
 
 	void ExprSMTLIBPrinter::printExtractExpr(const ref<ExtractExpr>& e)
@@ -174,17 +203,17 @@ namespace klee
 		unsigned int lowIndex= e->offset;
 		unsigned int highIndex= lowIndex + e->width -1;
 
-		p << "((_ " << getSMTLIBKeyword(e) << " " << highIndex << "  " << lowIndex << ") ";
+		*p << "((_ " << getSMTLIBKeyword(e) << " " << highIndex << "  " << lowIndex << ") ";
 
-		p.pushIndent(); //add indent for recursive call
+		p->pushIndent(); //add indent for recursive call
 		printSeperator();
 
 		//recurse
 		printExpression(e->getKid(0));
 
-		p.popIndent(); //pop indent added for the recursive call
+		p->popIndent(); //pop indent added for the recursive call
 		printSeperator();
-		p << ")";
+		*p << ")";
 	}
 
 	void ExprSMTLIBPrinter::printCastExpr(const ref<CastExpr>& e)
@@ -205,45 +234,45 @@ namespace klee
 		 */
 		unsigned int numExtraBits= (e->width) - (e->src->getWidth());
 
-		p << "((_ " << getSMTLIBKeyword(e) << " " <<
+		*p << "((_ " << getSMTLIBKeyword(e) << " " <<
 				numExtraBits << ") ";
 
-		p.pushIndent(); //add indent for recursive call
+		p->pushIndent(); //add indent for recursive call
 		printSeperator();
 
 		//recurse
 		printExpression(e->src);
 
-		p.popIndent(); //pop indent added for recursive call
+		p->popIndent(); //pop indent added for recursive call
 		printSeperator();
 
-		p << ")";
+		*p << ")";
 	}
 
 	void ExprSMTLIBPrinter::printNotEqualExpr(const ref<NeExpr>& e)
 	{
-		p << "(not (";
-		p.pushIndent();
-		p << "=" << " ";
-		p.pushIndent();
+		*p << "(not (";
+		p->pushIndent();
+		*p << "=" << " ";
+		p->pushIndent();
 		printSeperator();
 
 		printExpression(e->getKid(0));
 		printSeperator();
 		printExpression(e->getKid(1));
-		p.popIndent();
+		p->popIndent();
 		printSeperator();
 
-		p << ")";
-		p.popIndent();
+		*p << ")";
+		p->popIndent();
 		printSeperator();
-		p << ")";
+		*p << ")";
 	}
 
 	void ExprSMTLIBPrinter::printOtherExpr(const ref<Expr>& e)
 	{
-		p << "(" << getSMTLIBKeyword(e) << " ";
-		p.pushIndent(); //add indent for recursive call
+		*p << "(" << getSMTLIBKeyword(e) << " ";
+		p->pushIndent(); //add indent for recursive call
 
 		//loop over children and recurse into each
 		for(unsigned int i=0; i < e->getNumKids(); i++)
@@ -252,9 +281,9 @@ namespace klee
 			printExpression(e->getKid(i));
 		}
 
-		p.popIndent(); //pop indent added for recurisve call
+		p->popIndent(); //pop indent added for recurisve call
 		printSeperator();
-		p << ")";
+		*p << ")";
 	}
 
 	const char* ExprSMTLIBPrinter::getSMTLIBKeyword(const ref<Expr>& e)
@@ -316,8 +345,8 @@ namespace klee
 	{
 		if(un!=NULL)
 		{
-			p << "(store ";
-			p.pushIndent();
+			*p << "(store ";
+			p->pushIndent();
 			printSeperator();
 
 			//recurse to get the array or update that this store operations applies to
@@ -332,14 +361,14 @@ namespace klee
 			//print value that is assigned to this index of the array
 			printExpression(un->value);
 
-			p.popIndent();
+			p->popIndent();
 			printSeperator();
-			p << ")";
+			*p << ")";
 		}
 		else
 		{
 			//The base case of the recursion
-			p << root->name;
+			*p << root->name;
 		}
 
 	}
@@ -347,17 +376,20 @@ namespace klee
 	void ExprSMTLIBPrinter::scanAll()
 	{
 		//perform scan of all expressions
-		for(ConstraintManager::const_iterator i= query.constraints.begin(); i != query.constraints.end(); i++)
+		for(ConstraintManager::const_iterator i= query->constraints.begin(); i != query->constraints.end(); i++)
 			scan(*i);
 
 		//Scan the query too
-		scan(query.expr);
+		scan(query->expr);
 	}
 
 	void ExprSMTLIBPrinter::generateOutput()
 	{
-		//Scan all the expressions to fill usedArrays
-		scanAll();
+		if(p==NULL || query == NULL || o ==NULL)
+		{
+			klee_warning("Can't print SMTLIBv2. Ouput or query bad!");
+			return;
+		}
 
 		if(humanReadable) printNotice();
 		printOptions();
@@ -371,13 +403,13 @@ namespace klee
 
 	void ExprSMTLIBPrinter::printSetLogic()
 	{
-		o << "(set-logic ";
+		*o << "(set-logic ";
 		switch(logicToUse)
 		{
-		case QF_ABV: o << "QF_ABV"; break;
-		case QF_AUFBV: o << "QF_AUFBV" ; break;
+		case QF_ABV: *o << "QF_ABV"; break;
+		case QF_AUFBV: *o << "QF_AUFBV" ; break;
 		}
-		o << " )" << std::endl;
+		*o << " )" << std::endl;
 	}
 
 
@@ -385,12 +417,12 @@ namespace klee
 	{
 		//Assume scan() has been called
 		if(humanReadable)
-			o << "; Array declarations" << endl;
+			*o << "; Array declarations" << endl;
 
 		//declare arrays
 		for(set<const Array*>::iterator it = usedArrays.begin(); it != usedArrays.end(); it++)
 		{
-			o << "(declare-fun " << (*it)->name << " () "
+			*o << "(declare-fun " << (*it)->name << " () "
 				 "(Array (_ BitVec " << (*it)->getDomain() << ") "
 				 "(_ BitVec " << (*it)->getRange() << ") ) )" << endl;
 		}
@@ -399,7 +431,7 @@ namespace klee
 		if(haveConstantArray)
 		{
 			if(humanReadable)
-				o << "; Constant Array Definitions" << endl;
+				*o << "; Constant Array Definitions" << endl;
 
 			const Array* array;
 
@@ -416,24 +448,24 @@ namespace klee
 					for(vector< ref<ConstantExpr> >::const_iterator ce= array->constantValues.begin();
 							ce != array->constantValues.end(); ce++, byteIndex++)
 					{
-						p << "(assert (";
-						p.pushIndent();
-						p <<           "= ";
-						p.pushIndent();
+						*p << "(assert (";
+						p->pushIndent();
+						*p <<           "= ";
+						p->pushIndent();
 						printSeperator();
 
-						p << "(select " << array->name << " (_ bv" << byteIndex << " " << array->getDomain() << ") )";
+						*p << "(select " << array->name << " (_ bv" << byteIndex << " " << array->getDomain() << ") )";
 						printSeperator();
 						printConstant((*ce));
 
-						p.popIndent();
+						p->popIndent();
 						printSeperator();
-						p << ")";
-						p.popIndent();
+						*p << ")";
+						p->popIndent();
 						printSeperator();
-						p << ")";
+						*p << ")";
 
-						p.breakLineI();
+						p->breakLineI();
 
 					}
 				}
@@ -444,21 +476,21 @@ namespace klee
 	void ExprSMTLIBPrinter::printConstraints()
 	{
 		if(humanReadable)
-			o << "; Constraints" << endl;
+			*o << "; Constraints" << endl;
 
 		//Generate assert statements for each constraint
-		for(ConstraintManager::const_iterator i= query.constraints.begin(); i != query.constraints.end(); i++)
+		for(ConstraintManager::const_iterator i= query->constraints.begin(); i != query->constraints.end(); i++)
 		{
-			p << "(assert ";
-			p.pushIndent();
+			*p << "(assert ";
+			p->pushIndent();
 			printSeperator();
 
 			//recurse into Expression
 			printExpression(*i);
 
-			p.popIndent();
+			p->popIndent();
 			printSeperator();
-			p << ")"; p.breakLineI();
+			*p << ")"; p->breakLineI();
 		}
 
 	}
@@ -466,7 +498,7 @@ namespace klee
 	void ExprSMTLIBPrinter::printAction()
 	{
 		//Ask solver to check for satisfiability
-		o << "(check-sat)" << endl;
+		*o << "(check-sat)" << endl;
 
 		/* If we has arrays to find the values of then we'll
 		 * ask the solver for the value of each bitvector in each array
@@ -483,7 +515,7 @@ namespace klee
 				//Loop over the array indices
 				for(unsigned int index=0; index < theArray->size; ++index)
 				{
-					o << "(get-value ( (select " << (**it).name <<
+					*o << "(get-value ( (select " << (**it).name <<
 					     " (_ bv" << index << " " << theArray->getDomain() << ") ) ) )" << endl;
 				}
 
@@ -539,7 +571,7 @@ namespace klee
 
 	void ExprSMTLIBPrinter::printExit()
 	{
-		o << "(exit)" << endl;
+		*o << "(exit)" << endl;
 	}
 
 	bool ExprSMTLIBPrinter::setLogic(SMTLIBv2Logic l)
@@ -554,14 +586,14 @@ namespace klee
 	void ExprSMTLIBPrinter::printSeperator()
 	{
 		if(humanReadable)
-			p.breakLineI();
+			p->breakLineI();
 		else
-			p.write(" ");
+			p->write(" ");
 	}
 
 	void ExprSMTLIBPrinter::printNotice()
 	{
-		o << "; This file conforms to SMTLIBv2 and was generated by KLEE" << endl;
+		*o << "; This file conforms to SMTLIBv2 and was generated by KLEE" << endl;
 	}
 
 	void ExprSMTLIBPrinter::setHumanReadable(bool hr)
@@ -574,7 +606,7 @@ namespace klee
 		//Print out SMTLIBv2 boolean options
 		for(std::map<const char*,bool>::const_iterator i= smtlibBoolOptions.begin(); i!= smtlibBoolOptions.end(); i++)
 		{
-			o << "(set-option :" << i->first << " " << ((i->second)?"true":"false") << ")" << endl;
+			*o << "(set-option :" << i->first << " " << ((i->second)?"true":"false") << ")" << endl;
 		}
 	}
 
@@ -582,32 +614,33 @@ namespace klee
 	{
 		if(humanReadable)
 		{
-			p << "; Query from solver turned into an assert";
-			p.breakLineI();
+			*p << "; Query from solver turned into an assert";
+			p->breakLineI();
 		}
 
-		p.pushIndent();
-		p << "(assert";
-		p.pushIndent();
+		p->pushIndent();
+		*p << "(assert";
+		p->pushIndent();
 		printSeperator();
 
 		printExpression(queryAssert);
 
-		p.popIndent();
+		p->popIndent();
 		printSeperator();
-		p << ")";
-		p.popIndent();
-		p.breakLineI();
+		*p << ")";
+		p->popIndent();
+		p->breakLineI();
 	}
 
 	void ExprSMTLIBPrinter::mangleQuery()
 	{
 		//Negating the query
-		queryAssert = Expr::createIsZero(query.expr);
+		queryAssert = Expr::createIsZero(query->expr);
 	}
 
 	bool ExprSMTLIBPrinter::setSMTLIBboolOption(SMTLIBboolOptions option, bool value)
 	{
+		//Can't change already present options FIXME
 		switch(option)
 		{
 			case PRINT_SUCCESS:

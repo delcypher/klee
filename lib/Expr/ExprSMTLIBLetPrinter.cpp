@@ -1,3 +1,6 @@
+//for klee_warning
+#include "../Core/Common.h"
+
 #include "klee/util/ExprSMTLIBLetPrinter.h"
 
 using namespace std;
@@ -6,16 +9,19 @@ namespace klee
 	const char ExprSMTLIBLetPrinter::BINDING_PREFIX[] = "?B";
 
 
-	ExprSMTLIBLetPrinter::ExprSMTLIBLetPrinter(std::ostream& o, const Query& q) :
-	ExprSMTLIBPrinter(o,q), bindings(), firstEO(), twoOrMoreEO(),
+	ExprSMTLIBLetPrinter::ExprSMTLIBLetPrinter() :
+	bindings(), firstEO(), twoOrMoreEO(),
 	disablePrintedAbbreviations(false)
 	{
 	}
 
 	void ExprSMTLIBLetPrinter::generateOutput()
 	{
-		//Scan all the expressions to fill usedArrays
-		scanAll();
+		if(p==NULL || query == NULL || o ==NULL)
+		{
+			klee_warning("Can't print SMTLIBv2. Output or query bad!");
+			return;
+		}
 
 		generateBindings();
 
@@ -96,40 +102,50 @@ namespace klee
 		else
 		{
 			//Use binding name e.g. "?B1"
-			p << BINDING_PREFIX << i->second;
+			*p << BINDING_PREFIX << i->second;
 		}
+	}
+
+	void ExprSMTLIBLetPrinter::reset()
+	{
+		//Let parent clean up first
+		ExprSMTLIBPrinter::reset();
+
+		firstEO.clear();
+		twoOrMoreEO.clear();
+		bindings.clear();
 	}
 
 	void ExprSMTLIBLetPrinter::printLetExpression()
 	{
-		p << "(assert"; p.pushIndent(); printSeperator();
+		*p << "(assert"; p->pushIndent(); printSeperator();
 
 		if(bindings.size() !=0 )
 		{
 			//Only print let expression if we have bindings to use.
-			p << "(let"; p.pushIndent(); printSeperator();
-			p << "( "; p.pushIndent();
+			*p << "(let"; p->pushIndent(); printSeperator();
+			*p << "( "; p->pushIndent();
 
 			//Print each binding
 			for(map<const ref<Expr>, unsigned int>::const_iterator i= bindings.begin();
 					i!=bindings.end(); ++i)
 			{
 				printSeperator();
-				p << "(" << BINDING_PREFIX << i->second << " ";
-				p.pushIndent();
+				*p << "(" << BINDING_PREFIX << i->second << " ";
+				p->pushIndent();
 
 				//Disable abbreviations so none are used here.
 				disablePrintedAbbreviations=true;
 				printExpression(i->first);
 
-				p.popIndent();
+				p->popIndent();
 				printSeperator();
-				p << ")";
+				*p << ")";
 			}
 
 
-			p.popIndent(); printSeperator();
-			p << ")";
+			p->popIndent(); printSeperator();
+			*p << ")";
 			printSeperator();
 
 			//Re-enable printing abbreviations.
@@ -138,9 +154,9 @@ namespace klee
 		}
 
 		//print out Expressions with abbreviations.
-		unsigned int numberOfItems= query.constraints.size() +1; //+1 for query
+		unsigned int numberOfItems= query->constraints.size() +1; //+1 for query
 		unsigned int itemsLeft=numberOfItems;
-		vector<ref<Expr> >::const_iterator constraint=query.constraints.begin();
+		vector<ref<Expr> >::const_iterator constraint=query->constraints.begin();
 
 		/* Produce nested (and () () statements. If the constraint set
 		 * is empty then we will only print the "queryAssert".
@@ -149,7 +165,7 @@ namespace klee
 		{
 			if(itemsLeft >=2)
 			{
-				p << "(and"; p.pushIndent(); printSeperator();
+				*p << "(and"; p->pushIndent(); printSeperator();
 				printExpression(*constraint);
 				printSeperator();
 				++constraint;
@@ -158,7 +174,7 @@ namespace klee
 			else
 			{
 				// must have 1 item left (i.e. the "queryAssert")
-				if(isHumanReadable()) { p << "; query"; p.breakLineI();}
+				if(isHumanReadable()) { *p << "; query"; p->breakLineI();}
 				printExpression(queryAssert);
 
 			}
@@ -170,8 +186,8 @@ namespace klee
 		itemsLeft= numberOfItems -1;
 		for(; itemsLeft!=0; --itemsLeft)
 		{
-			p.popIndent(); printSeperator();
-			p << ")";
+			p->popIndent(); printSeperator();
+			*p << ")";
 		}
 
 
@@ -179,14 +195,14 @@ namespace klee
 		if(bindings.size() !=0)
 		{
 			//end let expression
-			p.popIndent(); printSeperator();
-			p << ")";  printSeperator();
+			p->popIndent(); printSeperator();
+			*p << ")";  printSeperator();
 		}
 
 		//end assert
-		p.popIndent(); printSeperator();
-		p << ")";
-		p.breakLineI();
+		p->popIndent(); printSeperator();
+		*p << ")";
+		p->breakLineI();
 	}
 
 

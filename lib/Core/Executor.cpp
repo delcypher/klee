@@ -3411,7 +3411,10 @@ void Executor::getConstraintLog(const ExecutionState &state,
 	  //Create a query
 	  Query q(state.constraints, ConstantExpr::create(0, Expr::Bool));
 
-	  ExprSMTLIBLetPrinter printer(info,q);
+	  ExprSMTLIBLetPrinter printer;
+	  printer.setOutput(info);
+	  printer.setQuery(q);
+
 	  printer.setHumanReadable(true);
 	  printer.generateOutput();
 	  res = info.str();

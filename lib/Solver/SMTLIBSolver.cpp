@@ -2,6 +2,7 @@
 #include "klee/SolverImpl.h"
 #include <string>
 #include "klee/util/ExprSMTLIBPrinter.h"
+#include "klee/util/ExprSMTLIBLetPrinter.h"
 
 //for findSymbolicObjects()
 #include "klee/util/ExprUtil.h"
@@ -43,6 +44,8 @@ namespace klee
 		  // Hopefully it doesn't conflict with the exit code from any solver.
 		  static const int specialExitCode=57;
 
+		  ExprSMTLIBPrinter* printer;
+
 		  void giveUp();
 
 		  bool haveRunOutOfTime();
@@ -60,7 +63,7 @@ namespace klee
 		  			         const string& _pathToOutputTempFile,
 		  			         const string& _pathToInputTempFile
 		  					);
-		  	~SMTLIBSolverImpl() {}
+		  	~SMTLIBSolverImpl();
 
 
 		  	///Set the time in seconds to wait for the solver to complete.
@@ -101,14 +104,25 @@ namespace klee
   			         const string& _pathToInputTempFile
   					) : pathToSolver(_pathToSolver),
   						pathToSolverInputFile(_pathToOutputTempFile),
-  						pathToSolverOutputFile(_pathToInputTempFile)
+  						pathToSolverOutputFile(_pathToInputTempFile),
+  						printer(NULL)
 
   	{
+  		printer=new ExprSMTLIBPrinter();
+		//set options
+		printer->setLogic(ExprSMTLIBPrinter::QF_AUFBV);
+		printer->setHumanReadable(false);
+
   		timeout.tv_nsec = timeout.tv_sec = 0;
 
   		cerr << "Using external SMTLIBv2 Solver:" << pathToSolver << endl;
   		cerr << "Path to SMTLIBv2 query file:" << pathToSolverInputFile << endl;
   		cerr << "Path to SMTLIBv2 Solver response file:" << pathToSolverOutputFile << endl;
+  	}
+
+  	SMTLIBSolverImpl::~SMTLIBSolverImpl()
+  	{
+  		delete printer;
   	}
 
   	void SMTLIBSolverImpl::giveUp()
@@ -514,15 +528,12 @@ namespace klee
 			return false;
 		}
 
-		ExprSMTLIBPrinter printer(output,q);
-
-		//set options
-		printer.setLogic(ExprSMTLIBPrinter::QF_AUFBV);
-		printer.setHumanReadable(false);
-		printer.setArrayValuesToGet(arrays);
+		printer->setOutput(output);
+		printer->setQuery(q);
+		printer->setArrayValuesToGet(arrays);
 
 		//Generate SMTLIBv2 file containing the query
-		printer.generateOutput();
+		printer->generateOutput();
 
 		if(output.bad())
 		{
