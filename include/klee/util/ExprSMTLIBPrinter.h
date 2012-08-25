@@ -4,7 +4,6 @@
 #include <ostream>
 #include <string>
 #include <set>
-#include <stack>
 #include <map>
 #include <klee/Constraints.h>
 #include <klee/Expr.h>
@@ -82,7 +81,7 @@ namespace klee {
 			/// \sa setArrayValuesToGet
 			///
 			/// It does not matter what order the options are set in.
-			void generateOutput();
+			virtual void generateOutput();
 
 			///Set which SMTLIBv2 logic to use.
 			///This only affects what logics is used in the (set-logic <logic>) command.
@@ -119,8 +118,13 @@ namespace klee {
 			/// via (get-value ()) SMTLIBv2 command in the output stream in the same order as vector.
 			void setArrayValuesToGet(const std::vector<const Array*>& a);
 
+			bool isHumanReadable();
+
 
 		protected:
+
+			//Scan all constraints and the query
+			virtual void scanAll();
 
 			//Print an initial SMTLIBv2 comment before anything else is printed
 			virtual void printNotice();
@@ -155,7 +159,7 @@ namespace klee {
 
 			///Scan Expression recursively for Arrays in expressions. Found arrays are added to
 			/// the usedArrays vector.
-			void scan(const ref<Expr>& e);
+			virtual void scan(const ref<Expr>& e);
 
 			/* Rules of recursion for "Special Expression handlers" and printOtherExpr()
 			 *
@@ -184,29 +188,27 @@ namespace klee {
 
 			virtual void printSeperator();
 
+			///Helper function for scan() that scans the expressions of an update node
+			virtual void scanUpdates(const UpdateNode* un);
+
 			///Helper printer class
 			PrintContext p;
 
+			///This contains the query from the solver but negated for our purposes.
+			/// \sa mangleQuery()
+			ref<Expr> queryAssert;
+
+			///Indicates if there were any constant arrays founds during a scan()
+			bool haveConstantArray;
 
 
 		private:
 			SMTLIBv2Logic logicToUse;
 
-			///Helper function for scan() that scans the expressions of an update node
-			void scanUpdates(const UpdateNode* un);
-
-
-			///Indicates if there were any constant arrays founds during a scan()
-			bool haveConstantArray;
-
 			bool humanReadable;
 
 			//Map of enabled SMT	assert(queryAssert != NULL && "Failed to create assert expression!");LIB Options
 			std::map<const char*,bool> smtlibBoolOptions;
-
-			///This contains the query from the solver but negated for our purposes.
-			/// \sa mangleQuery()
-			ref<Expr> queryAssert;
 
 			///This sets queryAssert to be the boolean negation of the original Query
 			void mangleQuery();
@@ -217,6 +219,8 @@ namespace klee {
 			ConstantDisplayMode cdm;
 
 	};
+
+
 
 }
 

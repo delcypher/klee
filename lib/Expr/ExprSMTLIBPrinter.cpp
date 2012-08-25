@@ -30,11 +30,16 @@ namespace klee
 {
 
 	ExprSMTLIBPrinter::ExprSMTLIBPrinter(std::ostream& output, const Query& q) :
-		o(output), query(q), usedArrays(), p(output), logicToUse(QF_AUFBV), haveConstantArray(false),
+		o(output), query(q), usedArrays(), p(output), haveConstantArray(false), logicToUse(QF_AUFBV),
 		humanReadable(true), smtlibBoolOptions(), arraysToCallGetValueOn(NULL)
 	{
 		setConstantDisplayMode(argConstantDisplayMode);
 		mangleQuery();
+	}
+
+	bool ExprSMTLIBPrinter::isHumanReadable()
+	{
+		return humanReadable;
 	}
 
 	bool ExprSMTLIBPrinter::setConstantDisplayMode(ConstantDisplayMode cdm)
@@ -339,7 +344,7 @@ namespace klee
 
 	}
 
-	void ExprSMTLIBPrinter::generateOutput()
+	void ExprSMTLIBPrinter::scanAll()
 	{
 		//perform scan of all expressions
 		for(ConstraintManager::const_iterator i= query.constraints.begin(); i != query.constraints.end(); i++)
@@ -347,6 +352,12 @@ namespace klee
 
 		//Scan the query too
 		scan(query.expr);
+	}
+
+	void ExprSMTLIBPrinter::generateOutput()
+	{
+		//Scan all the expressions to fill usedArrays
+		scanAll();
 
 		if(humanReadable) printNotice();
 		printOptions();

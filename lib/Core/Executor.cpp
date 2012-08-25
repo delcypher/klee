@@ -81,6 +81,7 @@
 #include <cxxabi.h>
 
 #include "klee/util/ExprSMTLIBPrinter.h"
+#include "klee/util/ExprSMTLIBLetPrinter.h"
 #include "klee/SMTLIBSolver.h"
 
 using namespace llvm;
@@ -3410,7 +3411,7 @@ void Executor::getConstraintLog(const ExecutionState &state,
 	  //Create a query
 	  Query q(state.constraints, ConstantExpr::create(0, Expr::Bool));
 
-	  ExprSMTLIBPrinter printer(info,q);
+	  ExprSMTLIBLetPrinter printer(info,q);
 	  printer.setHumanReadable(true);
 	  printer.generateOutput();
 	  res = info.str();
