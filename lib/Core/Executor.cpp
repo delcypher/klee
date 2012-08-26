@@ -286,6 +286,11 @@ namespace {
   writeSMTLIBFileSizeLog("smtlibv2-solver-log-query-size",
 		  	  	cl::desc("If using smtlibv2 solver log the size of the query files. (default=off)"),
 		  	  	cl::init(false));
+
+  cl::opt<bool>
+  UseQuerySMTLIBLog("use-query-smtlibv2-log",
+                cl::init(false),
+		cl::desc("Log all queries into queries.smt2 (default=off)"));
 }
 
 
@@ -297,7 +302,8 @@ Solver *constructSolverChain(Solver *baseSolver,
                              std::string queryLogPath,
                              std::string stpQueryLogPath,
                              std::string queryPCLogPath,
-                             std::string stpQueryPCLogPath) {
+                             std::string stpQueryPCLogPath,
+                             std::string smtlibv2QueryLogPath) {
   Solver *solver = baseSolver;
 
   if (UseSTPQueryPCLog)
@@ -323,6 +329,9 @@ Solver *constructSolverChain(Solver *baseSolver,
     solver = createPCLoggingSolver(solver, 
                                    queryPCLogPath);
   
+  if(UseQuerySMTLIBLog)
+	  solver = createSMTLIBLoggingSolver(solver,smtlibv2QueryLogPath);
+
   return solver;
 }
 
@@ -386,7 +395,8 @@ Executor::Executor(const InterpreterOptions &opts,
                          interpreterHandler->getOutputFilename("queries.qlog"),
                          interpreterHandler->getOutputFilename("stp-queries.qlog"),
                          interpreterHandler->getOutputFilename("queries.pc"),
-                         interpreterHandler->getOutputFilename("stp-queries.pc"));
+                         interpreterHandler->getOutputFilename("stp-queries.pc"),
+                         interpreterHandler->getOutputFilename("queries.smt2"));
   
   this->solver = new TimingSolver(solver, static_cast<SolverWithTimeOut*>(baseSolver));
 
