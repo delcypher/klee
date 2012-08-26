@@ -25,6 +25,14 @@
 
 #include "SolverStats.h"
 
+#include "llvm/Support/CommandLine.h"
+namespace llvm
+{
+  cl::opt<bool>
+  useSMTLIBLetExpressions("smtlibv2-solver-use-lets",
+                 cl::desc("If using smtlibv2 solver use let expressions to abbreviate (default=on) (see -solver)."),
+                 cl::init(true));
+}
 
 using namespace std;
 namespace klee
@@ -108,7 +116,12 @@ namespace klee
   						printer(NULL)
 
   	{
-  		printer=new ExprSMTLIBPrinter();
+  		/* Let the command line set which printer to
+  		 * use.
+  		 */
+  		printer=llvm::useSMTLIBLetExpressions?
+  				(new ExprSMTLIBLetPrinter()):
+  				(new ExprSMTLIBPrinter());
 		//set options
 		printer->setLogic(ExprSMTLIBPrinter::QF_AUFBV);
 		printer->setHumanReadable(false);
