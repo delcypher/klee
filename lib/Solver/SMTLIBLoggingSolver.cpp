@@ -38,7 +38,7 @@ class SMTLIBLoggingSolver : public SolverImpl {
   unsigned queryCount;
   double startTime;
 
-  void startQuery(const Query& query, const char *typeName)
+  void startQuery(const Query& query, const char *typeName, const std::vector<const Array*>* objects=NULL)
   {
     Statistic *S = theStatisticManager->getStatisticByName("Instructions");
     uint64_t instructions = S ? S->getValue() : 0;
@@ -46,6 +46,10 @@ class SMTLIBLoggingSolver : public SolverImpl {
        << "Type: " << typeName << ", "
        << "Instructions: " << instructions << "\n";
     printer.setQuery(query);
+
+    if(objects!=NULL)
+    	printer.setArrayValuesToGet(*objects);
+
     printer.generateOutput();
     os << "\n";
     
@@ -112,7 +116,8 @@ public:
                             bool &hasSolution)
   {
 
-	  startQuery(query, "InitialValues");
+	  startQuery(query, "InitialValues", &objects);
+
 
     bool success = solver->impl->computeInitialValues(query, objects, 
                                                       values, hasSolution);
