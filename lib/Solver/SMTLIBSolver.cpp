@@ -262,16 +262,22 @@ namespace klee
 			 *
 			 * A more elegant solution than using waitpid() is to use sigtimedwait() (in conjunction
 			 * with waitpid() so we reap the child) for the timedwait but this requires that we block
-			 * SIGALRM which disrupts KLEE keeping track of time. For now this will do
+			 * SIGALRM which disrupts KLEE keeping track of time. For now this will do.
+			 *
+			 * Sometimes (e.g. Feature/SolverTimeout test case) the SIGALRM interval timer isn't set (why?)
+			 * so this could cause a permanent hang if we didn't use WNOHANG. When no child is
+			 * available waitpid() returns 0.
+			 *
 			 */
 			do
 			{
-				result=waitpid(childPid,&status,0);
-			} while(result == -1 && errno == EINTR && !haveRunOutOfTime());
+				result=waitpid(childPid,&status,WNOHANG);
+			} while(!haveRunOutOfTime() && ( (result == -1 && errno == EINTR) || result==0 ) );
 
 			if(haveRunOutOfTime())
 			{
 				klee_warning("SMTLIBSolverImpl: The Solver timed out!");
+				kill(childPid,SIGTERM);
 				return false;
 			}
 
