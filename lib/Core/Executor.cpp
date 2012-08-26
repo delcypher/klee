@@ -281,6 +281,11 @@ namespace {
 				  "first argument. This implies -solver=smtlibv2"),
 		  cl::init("")
   	  	  );
+
+  cl::opt<bool>
+  writeSMTLIBFileSizeLog("smtlibv2-solver-log-query-size",
+		  	  	cl::desc("If using smtlibv2 solver log the size of the query files. (default=off)"),
+		  	  	cl::init(false));
 }
 
 
@@ -368,6 +373,9 @@ Executor::Executor(const InterpreterOptions &opts,
   				interpreterHandler->getOutputFilename("query.smt2"),
   				interpreterHandler->getOutputFilename("smt2-result.log")
   				  	  	  	  	  	);
+  		  if(writeSMTLIBFileSizeLog.Value)
+  			  static_cast<SMTLIBSolver*>(baseSolver)->setRecordQueryFileSizes(interpreterHandler->getOutputFilename("smt2-file-sizes.log"));
+
   		 break;
   	  default:
   		  klee_error("Tried to invoke an unknown solver.");

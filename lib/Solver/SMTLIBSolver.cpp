@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 
 #include "SMTLIBOutputLexer.h"
 
@@ -32,6 +33,8 @@ namespace llvm
   useSMTLIBLetExpressions("smtlibv2-solver-use-lets",
                  cl::desc("If using smtlibv2 solver use let expressions to abbreviate (default=on) (see -solver)."),
                  cl::init(true));
+
+
 }
 
 using namespace std;
@@ -48,6 +51,8 @@ namespace klee
 		  timespec timeout;
 		  timespec startTime;
 
+		  ofstream* fileSizeLog;
+
 		  // This is the exit code we use for a failed execution of the child process
 		  // Hopefully it doesn't conflict with the exit code from any solver.
 		  static const int specialExitCode=57;
@@ -55,6 +60,7 @@ namespace klee
 		  ExprSMTLIBPrinter* printer;
 
 		  void giveUp();
+		  void deleteOldLog();
 
 		  bool haveRunOutOfTime();
 
@@ -78,6 +84,10 @@ namespace klee
 		  	///This time is rounded to the nearest second.
 		  	///The default is 0 (i.e. no timeout)
 			void setTimeout(double _timeout);
+
+			///If called the size of query files (.smt2) will be logged to
+			///\param logPath
+			void setRecordQueryFileSizes(const std::string& logPath);
 
 			bool computeTruth(const Query&, bool &isValid);
 			bool computeValue(const Query&, ref<Expr> &result);
@@ -103,6 +113,11 @@ namespace klee
 		static_cast<SMTLIBSolverImpl*>(impl)->setTimeout(timeout);
 	}
 
+	void SMTLIBSolver::setRecordQueryFileSizes(const std::string& logPath)
+	{
+		static_cast<SMTLIBSolverImpl*>(impl)->setRecordQueryFileSizes(logPath);
+	}
+
 	/*
 	 *  Implementation of SMTLIBSolverImpl methods
 	 */
@@ -113,6 +128,7 @@ namespace klee
   					) : pathToSolver(_pathToSolver),
   						pathToSolverInputFile(_pathToOutputTempFile),
   						pathToSolverOutputFile(_pathToInputTempFile),
+  						fileSizeLog(NULL),
   						printer(NULL)
 
   	{
@@ -128,14 +144,46 @@ namespace klee
 
   		timeout.tv_nsec = timeout.tv_sec = 0;
 
-  		cerr << "Using external SMTLIBv2 Solver:" << pathToSolver << endl;
-  		cerr << "Path to SMTLIBv2 query file:" << pathToSolverInputFile << endl;
-  		cerr << "Path to SMTLIBv2 Solver response file:" << pathToSolverOutputFile << endl;
+  		cerr << "KLEE: Using external SMTLIBv2 Solver:" << pathToSolver << endl;
+  		cerr << "KLEE: Path to SMTLIBv2 query file:" << pathToSolverInputFile << endl;
+  		cerr << "KLEE: Path to SMTLIBv2 Solver response file:" << pathToSolverOutputFile << endl;
   	}
 
   	SMTLIBSolverImpl::~SMTLIBSolverImpl()
   	{
   		delete printer;
+
+  		deleteOldLog();
+  	}
+
+  	void SMTLIBSolverImpl::setRecordQueryFileSizes(const std::string& logPath)
+  	{
+  		deleteOldLog();
+
+  		fileSizeLog = new ofstream(logPath.c_str());
+
+  		if(! fileSizeLog->is_open())
+  		{
+  			cerr << "KLEE : Warning could not log .smt2 file sizes to " << logPath << endl;
+  		}
+  		else
+  		{
+  			cerr << "KLEE : Logging .smt2 query file sizes to " << logPath << endl;
+
+  			//write header
+  			*fileSizeLog << "# [Query number] [file size(bytes)]" << endl;
+
+  		}
+  	}
+
+  	void SMTLIBSolverImpl::deleteOldLog()
+  	{
+  		//Delete old log if it exists
+  		if(fileSizeLog!=NULL)
+  		{
+  			if(fileSizeLog->is_open()) fileSizeLog->close();
+  			delete fileSizeLog;
+  		}
   	}
 
   	void SMTLIBSolverImpl::giveUp()
@@ -561,6 +609,23 @@ namespace klee
 		}
 
 		output.close();
+
+		if(fileSizeLog!=NULL)
+		{
+			//Log the size of the file we just made in bytes
+			struct stat buf;
+			int result= stat(pathToSolverInputFile.c_str(),&buf);
+			if(result == -1)
+			{
+				perror("stat:");
+				return false;
+			}
+
+			intmax_t sizeInBytes = buf.st_size;
+			*fileSizeLog << stats::queries << " " << sizeInBytes << endl;
+
+		}
+
 		return true;
 	}
 
@@ -584,6 +649,8 @@ namespace klee
 		else
 			return false;//we've got some time left.
 	}
+
+
 
 }
 

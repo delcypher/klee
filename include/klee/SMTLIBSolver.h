@@ -14,6 +14,9 @@ namespace klee
 
 		void setTimeout(double timeout);
 
+		//If not called no file size logging will be done.
+		void setRecordQueryFileSizes(const std::string& logPath );
+
 		SolverType getType() { return Solver::SMTLIBv2; }
 	};
 
