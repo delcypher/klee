@@ -99,7 +99,6 @@ do
 
 	#Grab query number
 	QUERY_NO=$(sed -n "${BEGIN_LINE},${BEGIN_LINE}s/^;SMTLIBv2 Query \([0-9]\+\) .\+/\1/;${BEGIN_LINE},${BEGIN_LINE}p" "${INPUT}")
-	echo "query: ${QUERY_NO}"
 
 	#Generate file
 	FILENAME="${DEST_DIR}/query.${QUERY_NO}.smt2"
