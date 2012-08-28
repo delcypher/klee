@@ -1,0 +1,82 @@
+#!/bin/bash 
+
+function usage()
+{
+	echo "Usage: $0 <input-dir>"
+	echo "Usage: $0 <input-dir> <gv-dest> <ngv-dest>"
+	echo "<input-dir> - Directory containing .smt2 files"
+	echo "<gv-dest> - Destination directory for queries with (get-value) commands"
+	echo "<ngv-dest> - Destination directory for queries without (get-value) commands"
+	echo ""
+	echo "This utility works out how many of the different types of SMTLIBv2 queries are"
+	echo "present in <input-dir> if invoked with just one argument."
+	echo ""
+	echo "If invoked with three arguments the program will also move queries into directories"
+	echo "<gv-dest> or <ngv-dest>."
+}
+
+MV=""
+GV_DEST=""
+NGV_DEST=""
+
+if [ $# -eq 3 ]; then
+	MV="mv";
+	GV_DEST="$2"
+	NGV_DEST="$3"
+
+	#check directories exist
+	if [ ! -d "${GV_DEST}" ]; then  echo "GV_DEST : ${GV_DEST} does not exist!"; exit 1; fi
+	if [ ! -d "${NGV_DEST}" ]; then  echo "NGV_DEST : ${NGV_DEST} does not exist!"; exit 1; fi
+
+fi
+
+if [ $# -ne 1  -a $# -ne 3 ]; then
+	usage;
+	exit 1;
+fi
+
+SMTLIB_DIR="$1"
+
+#check directory exists
+if [ ! -d "${SMTLIB_DIR}" ]; then
+	echo "Directory ${SMTLIB_DIR} does not exist!"
+	exit 1;
+fi
+
+NGV_COUNT=0;
+GET_VALUE_COUNT=0;
+FILE_COUNT=0;
+
+cd "${SMTLIB_DIR}" || { echo "Couldn't change to directory ${SMTLIB_DIR}"; exit 1; }
+
+echo "Please wait..."
+
+for file in *.smt2 ;
+do
+	#check file
+	if [ $( grep -E --max-count=1 -c '^\(get-value' "${file}" ) -eq 1 ]; then
+		((++GET_VALUE_COUNT));
+
+		if [ -n "${MV}" ]; then
+			# do move
+			mv "$file" "${GV_DEST}"
+		fi
+	
+	elif [ $( grep -E --max-count=1 -c '^\(check-sat' "${file}" ) -eq 1 ]; then
+		((++NGV_COUNT));
+
+		if [ -n "${MV}" ]; then
+			# do move
+			mv "$file" "${NGV_DEST}"
+		fi
+	fi
+
+	((++FILE_COUNT))
+	echo -e -n "Processing file : ${file}\r"
+done
+
+echo -e "\n######"
+echo "Files:${FILE_COUNT}"
+echo "Files with (get-value) commands: ${GET_VALUE_COUNT}"
+echo "Files without (get-value) commands: ${NGV_COUNT}"
+echo -e "######"
