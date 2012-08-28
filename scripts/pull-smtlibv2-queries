@@ -12,11 +12,9 @@ function usage()
 	echo "<destination directory> - The location to put the seperated query files"
 	echo ""
 	echo "Options"
-	echo "--strip : Remove (get-value) and (set-option ) commands from queries."
 	echo "--help  : Show this message"
 }
 
-STRIP_GET_VALUE=0
 
 #Check we have minimum number of arguments
 if [ $# -lt 2 ]; then 
@@ -34,11 +32,6 @@ while [ -n $1 ] ; do
 			--help)
 				usage;
 				exit 1;
-				;;
-
-			--strip)
-				STRIP_GET_VALUE=1;
-				echo "Stripping (get-value) commands."
 				;;
 
 			*)
@@ -61,6 +54,10 @@ if [ $# -ne 2 ]; then
 fi
 
 INPUT="$1"
+
+#get absolute path
+INPUT=$(realpath "${INPUT}")
+
 DEST_DIR="$2"
 
 #Strip trailing slashes from DEST_DIR
@@ -78,39 +75,30 @@ if [ ! -f "${INPUT}" ]; then
 	exit 1;
 fi
 
-#Get all the lines that start a query
-START_LINES=( $(sed -n '/^;SMTLIBv2/=' ${INPUT} ) )
+#Determine number of queries
+NUMBER_OF_QUERIES=$(tac "${INPUT}" | grep -E --max-count=1 '^;SMTLIBv2' | sed 's/^;SMTLIBv2 Query \([0-9]\+\).\+/\1/' )
+echo "File appears to have ${NUMBER_OF_QUERIES} queries."
 
-echo "Found ${#START_LINES[@]} queries"
+#determine number of digits.
+NUMBER_OF_DIGITS=$( echo -n "${NUMBER_OF_QUERIES}" | wc -m)
 
-#Loop over the different queries
-for ((q=0; q < ${#START_LINES[@]}; q++))
+cd "${DEST_DIR}" || { echo "Failed to change directory to ${DEST_DIR}"; exit 1;}
+
+echo "Running csplit..."
+csplit --quiet --prefix="query." --suffix-format="%0${NUMBER_OF_DIGITS}d.smt2" "${INPUT}" '/;SMTLIBv2/' '{*}'
+
+#Remove empty query
+FILE_TO_REMOVE="query."
+
+#Add necessary number of zeros.
+for (( c=0 ; c < ${NUMBER_OF_DIGITS} ; c++ )) 
 do
-	#Get the beginning line
-	BEGIN_LINE=${START_LINES[$q]}
-
-	#Get the end line 
-	NEXT_INDEX=$(( q + 1))
-	END_LINE=${START_LINES[$NEXT_INDEX]}
-	END_LINE=$(( END_LINE -1))
-
-	#If on last query use special last line symbol
-	if [ "${END_LINE}" = "-1" ]; then END_LINE='$'; fi
-
-	#Grab query number
-	QUERY_NO=$(sed -n "${BEGIN_LINE},${BEGIN_LINE}s/^;SMTLIBv2 Query \([0-9]\+\) .\+/\1/;${BEGIN_LINE},${BEGIN_LINE}p" "${INPUT}")
-
-	#Generate file
-	FILENAME="${DEST_DIR}/query.${QUERY_NO}.smt2"
-	echo "Generating file ${FILENAME}"
-
-	if [ "${STRIP_GET_VALUE}" -eq 0 ]; then
-		#Don't strip some commands
-		sed -n "${BEGIN_LINE},${END_LINE}p" "${INPUT}" > "${FILENAME}"
-	else
-
-		#Strip some commands
-		sed -n "/^(get-value/d;/^(set-option/d;${BEGIN_LINE},${END_LINE}p" "${INPUT}" > "${FILENAME}"
-	fi
+	FILE_TO_REMOVE="${FILE_TO_REMOVE}0"
 done
+
+FILE_TO_REMOVE="${FILE_TO_REMOVE}.smt2"
+
+rm "${FILE_TO_REMOVE}"
+
+echo "Done"
 
