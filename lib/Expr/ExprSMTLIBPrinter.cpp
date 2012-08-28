@@ -665,6 +665,17 @@ namespace klee
 		//This option must be set in order to use the SMTLIBv2 command (get-value () )
 		if(!a.empty())
 			setSMTLIBboolOption(PRODUCE_MODELS,true);
+
+		/* There is a risk that users will ask about array values that aren't
+		 * even in the query. We should add them to the usedArrays list and hope
+		 * that the solver knows what to do when we ask for the values of arrays
+		 * that don't feature in our query!
+		 */
+		for(vector<const Array*>::const_iterator i = a.begin(); i!= a.end() ; ++i)
+		{
+			usedArrays.insert(*i);
+		}
+
 	}
 
 }
