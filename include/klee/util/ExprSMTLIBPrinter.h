@@ -52,6 +52,14 @@ namespace klee {
 				DECIMAL ///< Display bit vector constants in Decimal e.g. (_ bv45 8)
 			};
 
+			///Different supported SMTLIBv2 sorts (a.k.a type) in QF_AUFBV
+			enum SMTLIB_SORT
+			{
+				SORT_BITVECTOR,
+				SORT_BOOL,
+				SORT_ANY ///< This a special sort for the ite and = operators that prevents casting.
+			};
+
 
 
 			///Allows the way Constant bitvectors are printed to be changed.
@@ -137,6 +145,12 @@ namespace klee {
 			///The query to print
 			const Query* query;
 
+			///Determine the SMTLIBv2 sort of the expression
+			SMTLIB_SORT getSort(const ref<Expr>& e);
+
+			///Print an expression but cast it to a particular SMTLIBv2 sort first.
+			void printCastToSort(const ref<Expr>& e, ExprSMTLIBPrinter::SMTLIB_SORT sort);
+
 			//Resets various internal objects for a new query
 			virtual void reset();
 
@@ -172,19 +186,21 @@ namespace klee {
 			void printConstant(const ref<ConstantExpr>& e);
 
 			///Recursively print expression
-			virtual void printExpression(const ref<Expr>& e);
+			/// \param e is the expression to print
+			/// \param expectedSort is the sort we want. If "e" is not of the right type a cast will be performed.
+			virtual void printExpression(const ref<Expr>& e, ExprSMTLIBPrinter::SMTLIB_SORT expectedSort);
 
 			///Scan Expression recursively for Arrays in expressions. Found arrays are added to
 			/// the usedArrays vector.
 			virtual void scan(const ref<Expr>& e);
 
-			/* Rules of recursion for "Special Expression handlers" and printOtherExpr()
+			/* Rules of recursion for "Special Expression handlers" and printSortArgsExpr()
 			 *
 			 * 1. The parent of the recursion will have created an indent level for you so you don't need to add another initially.
 			 * 2. You do not need to add a line break (via printSeperator() ) at the end, the parent caller will handle that.
-			 * 3. The effect of a single recursive call should not affect the depth of the stack (nor the contents
-			 *    of the stack prior to the call). I.e. After executing a single recursive call the stack should have the
-			 *    same size and contents as before executing the recursive call.
+			 * 3. The effect of a single recursive call should not affect the depth of the indent stack (nor the contents
+			 *    of the indent stack prior to the call). I.e. After executing a single recursive call the indent stack
+			 *    should have the same size and contents as before executing the recursive call.
 			 */
 
 			//Special Expression handlers
@@ -192,9 +208,10 @@ namespace klee {
 			virtual void printExtractExpr(const ref<ExtractExpr>& e);
 			virtual void printCastExpr(const ref<CastExpr>& e);
 			virtual void printNotEqualExpr(const ref<NeExpr>& e);
+			virtual void printSelectExpr(const ref<SelectExpr>& e);
 
-			//All Expressions not handled by the "special expression handlers" are handled by this method
-			virtual void printOtherExpr(const ref<Expr>& e);
+			//For the set of operators that take sort "s" arguments
+			virtual void printSortArgsExpr(const ref<Expr>& e, ExprSMTLIBPrinter::SMTLIB_SORT s);
 
 			///Recursively prints updatesNodes
 			virtual void printUpdatesAndArray(const UpdateNode* un, const Array* root);
@@ -222,7 +239,7 @@ namespace klee {
 		private:
 			SMTLIBv2Logic logicToUse;
 
-			bool humanReadable;
+			volatile bool humanReadable;
 
 			//Map of enabled SMT	assert(queryAssert != NULL && "Failed to create assert expression!");LIB Options
 			std::map<const char*,bool> smtlibBoolOptions;

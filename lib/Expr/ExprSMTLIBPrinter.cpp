@@ -142,8 +142,16 @@ namespace klee
 		}
 	}
 
-	void ExprSMTLIBPrinter::printExpression(const ref<Expr>& e)
+	void ExprSMTLIBPrinter::printExpression(const ref<Expr>& e, ExprSMTLIBPrinter::SMTLIB_SORT expectedSort)
 	{
+		//check if casting might be necessary
+		if(expectedSort != SORT_ANY && getSort(e) != expectedSort)
+		{
+			printCastToSort(e,expectedSort);
+			return;
+		}
+
+
 		switch(e->getKind())
 		{
 			case Expr::Constant:
@@ -152,7 +160,7 @@ namespace klee
 
 			case Expr::NotOptimized:
 				//skip to child
-				printExpression(e->getKid(0));
+				printExpression(e->getKid(0),expectedSort);
 				return;
 
 			case Expr::Read:
@@ -172,9 +180,29 @@ namespace klee
 				printNotEqualExpr(cast<NeExpr>(e));
 				return;
 
+			case Expr::Select:
+				//the if-then-else expression.
+				printSelectExpr(cast<SelectExpr>(e));
+				return;
+
+			case Expr::Eq:
+			case Expr::And:
+			case Expr::Or:
+			case Expr::Xor:
+				/* These operators expected SORT_ANY arguments.
+				 * In the SMTLIBv2 language only "=" supports SORT_ANY but
+				 * in generateSMTLIBKeyword() the operators And,Or,Xor automatically
+				 * work out what sort they need to be so we won't try to do any casting
+				 */
+				printSortArgsExpr(e,SORT_ANY);
+				return;
+
+
 			default:
-				/* All other expression types can be handled in a generic way */
-				printOtherExpr(e);
+				/* The remaining operators (Add,Sub...,Ult,Ule,..)
+				 * Expect SORT_BITVECTOR arguments
+				 */
+				printSortArgsExpr(e,SORT_BITVECTOR);
 				return;
 		}
 	}
@@ -191,7 +219,7 @@ namespace klee
 
 		//print index
 		printSeperator();
-		printExpression(e->index);
+		printExpression(e->index,SORT_BITVECTOR);
 
 		p->popIndent();
 		printSeperator();
@@ -209,7 +237,7 @@ namespace klee
 		printSeperator();
 
 		//recurse
-		printExpression(e->getKid(0));
+		printExpression(e->getKid(0),SORT_BITVECTOR);
 
 		p->popIndent(); //pop indent added for the recursive call
 		printSeperator();
@@ -241,7 +269,7 @@ namespace klee
 		printSeperator();
 
 		//recurse
-		printExpression(e->src);
+		printExpression(e->src,SORT_BITVECTOR);
 
 		p->popIndent(); //pop indent added for recursive call
 		printSeperator();
@@ -257,9 +285,9 @@ namespace klee
 		p->pushIndent();
 		printSeperator();
 
-		printExpression(e->getKid(0));
+		printExpression(e->getKid(0),SORT_BOOL);
 		printSeperator();
-		printExpression(e->getKid(1));
+		printExpression(e->getKid(1),SORT_BOOL);
 		p->popIndent();
 		printSeperator();
 
@@ -269,22 +297,6 @@ namespace klee
 		*p << ")";
 	}
 
-	void ExprSMTLIBPrinter::printOtherExpr(const ref<Expr>& e)
-	{
-		*p << "(" << getSMTLIBKeyword(e) << " ";
-		p->pushIndent(); //add indent for recursive call
-
-		//loop over children and recurse into each
-		for(unsigned int i=0; i < e->getNumKids(); i++)
-		{
-			printSeperator();
-			printExpression(e->getKid(i));
-		}
-
-		p->popIndent(); //pop indent added for recurisve call
-		printSeperator();
-		*p << ")";
-	}
 
 	const char* ExprSMTLIBPrinter::getSMTLIBKeyword(const ref<Expr>& e)
 	{
@@ -355,11 +367,11 @@ namespace klee
 			printSeperator();
 
 			//print index
-			printExpression(un->index);
+			printExpression(un->index,SORT_BITVECTOR);
 			printSeperator();
 
 			//print value that is assigned to this index of the array
-			printExpression(un->value);
+			printExpression(un->value,SORT_BITVECTOR);
 
 			p->popIndent();
 			printSeperator();
@@ -486,7 +498,7 @@ namespace klee
 			printSeperator();
 
 			//recurse into Expression
-			printExpression(*i);
+			printExpression(*i,SORT_BOOL);
 
 			p->popIndent();
 			printSeperator();
@@ -623,13 +635,94 @@ namespace klee
 		p->pushIndent();
 		printSeperator();
 
-		printExpression(queryAssert);
+		printExpression(queryAssert,SORT_BOOL);
 
 		p->popIndent();
 		printSeperator();
 		*p << ")";
 		p->popIndent();
 		p->breakLineI();
+	}
+
+	ExprSMTLIBPrinter::SMTLIB_SORT ExprSMTLIBPrinter::getSort(const ref<Expr>& e)
+	{
+		/* We could handle every operator in a large switch statement,
+		 * but this seems more elegant.
+		 */
+
+		if(e->getKind() == Expr::Extract)
+		{
+			/* This is a special corner case. In most cases if a node in the expression tree
+			 * is of width 1 it should be considered as SORT_BOOL. However it is possible to
+			 * perform an extract operation on a SORT_BITVECTOR and produce a SORT_BITVECTOR of length 1.
+			 * The ((_ extract i j) () ) operation in SMTLIBv2 always produces SORT_BITVECTOR
+			 */
+			return SORT_BITVECTOR;
+		}
+		else
+			return (e->getWidth() == Expr::Bool)?(SORT_BOOL):(SORT_BITVECTOR);
+	}
+
+	void ExprSMTLIBPrinter::printCastToSort(const ref<Expr>& e, ExprSMTLIBPrinter::SMTLIB_SORT sort)
+	{
+		switch(sort)
+		{
+			case SORT_BITVECTOR:
+				//We assume the e is a bool that we need to cast to a bitvector sort.
+				*p << "(ite"; p->pushIndent(); printSeperator();
+				printExpression(e,SORT_BOOL); printSeperator();
+				*p << "(_ bv1 1)" ; printSeperator(); //printing the "true" bitvector
+				*p << "(_ bv0 1)" ; p->popIndent(); printSeperator(); //printing the "false" bitvector
+				*p << ")";
+				break;
+			case SORT_BOOL:
+				assert(0 && "Casting a bitvector to bool is not supported.");
+				break;
+			default:
+				assert(0 && "Unsupported cast!");
+		}
+	}
+
+	void ExprSMTLIBPrinter::printSelectExpr(const ref<SelectExpr>& e)
+	{
+		//This is the if-then-else expression
+
+		*p << "(" << getSMTLIBKeyword(e) << " ";
+		p->pushIndent(); //add indent for recursive call
+
+			//The condition
+			printSeperator();
+			printExpression(e->getKid(0),SORT_BOOL);
+
+			//if true
+			printSeperator();
+			printExpression(e->getKid(1),SORT_ANY);
+
+			//if false
+			printSeperator();
+			printExpression(e->getKid(2),SORT_ANY);
+
+
+		p->popIndent(); //pop indent added for recursive call
+		printSeperator();
+		*p << ")";
+	}
+
+	void ExprSMTLIBPrinter::printSortArgsExpr(const ref<Expr>& e, ExprSMTLIBPrinter::SMTLIB_SORT s)
+	{
+		*p << "(" << getSMTLIBKeyword(e) << " ";
+		p->pushIndent(); //add indent for recursive call
+
+		//loop over children and recurse into each expecting they are of sort "s"
+		for(unsigned int i=0; i < e->getNumKids(); i++)
+		{
+			printSeperator();
+			printExpression(e->getKid(i),s);
+		}
+
+		p->popIndent(); //pop indent added for recursive call
+		printSeperator();
+		*p << ")";
 	}
 
 	void ExprSMTLIBPrinter::mangleQuery()

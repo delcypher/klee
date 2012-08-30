@@ -14,7 +14,7 @@ namespace klee
 			virtual void scan(const ref<Expr>& e);
 			virtual void reset();
 			virtual void generateBindings();
-			void printExpression(const ref<Expr>& e);
+			void printExpression(const ref<Expr>& e, ExprSMTLIBPrinter::SMTLIB_SORT expectedSort);
 			void printLetExpression();
 
 		private:

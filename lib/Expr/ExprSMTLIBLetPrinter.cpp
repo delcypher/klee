@@ -88,7 +88,7 @@ namespace klee
 		}
 	}
 
-	void ExprSMTLIBLetPrinter::printExpression(const ref<Expr>& e)
+	void ExprSMTLIBLetPrinter::printExpression(const ref<Expr>& e, ExprSMTLIBPrinter::SMTLIB_SORT expectedSort)
 	{
 		map<const ref<Expr>,unsigned int>::const_iterator i= bindings.find(e);
 
@@ -97,11 +97,23 @@ namespace klee
 			/*There is no abbreviation for this expression so print it normally.
 			 * Do this by using the parent method.
 			 */
-			ExprSMTLIBPrinter::printExpression(e);
+			ExprSMTLIBPrinter::printExpression(e,expectedSort);
 		}
 		else
 		{
 			//Use binding name e.g. "?B1"
+
+			/* Handle the corner case where the expectedSort
+			 * doesn't match the sort of the abbreviation. Not really very efficient (calls bindings.find() twice),
+			 * we'll cast and call ourself again but with the correct expectedSort.
+			 */
+			if(expectedSort!= SORT_ANY && getSort(e) != expectedSort)
+			{
+				printCastToSort(e,expectedSort);
+				return;
+			}
+
+			// No casting is needed in this depth of recursion, just print the abbreviation
 			*p << BINDING_PREFIX << i->second;
 		}
 	}
@@ -136,7 +148,7 @@ namespace klee
 
 				//Disable abbreviations so none are used here.
 				disablePrintedAbbreviations=true;
-				printExpression(i->first);
+				printExpression(i->first,SORT_ANY); //We can abbreviate SORT_BOOL or SORT_BITVECTOR in let expressions
 
 				p->popIndent();
 				printSeperator();
@@ -166,7 +178,7 @@ namespace klee
 			if(itemsLeft >=2)
 			{
 				*p << "(and"; p->pushIndent(); printSeperator();
-				printExpression(*constraint);
+				printExpression(*constraint,SORT_BOOL); //We must and together bool expressions
 				printSeperator();
 				++constraint;
 				continue;
@@ -175,7 +187,7 @@ namespace klee
 			{
 				// must have 1 item left (i.e. the "queryAssert")
 				if(isHumanReadable()) { *p << "; query"; p->breakLineI();}
-				printExpression(queryAssert);
+				printExpression(queryAssert,SORT_BOOL); //The query must be a bool expression
 
 			}
 		}
