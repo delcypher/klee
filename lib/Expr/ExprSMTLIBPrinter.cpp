@@ -676,7 +676,22 @@ namespace klee
 				*p << ")";
 				break;
 			case SORT_BOOL:
-				assert(0 && "Casting a bitvector to bool is not supported.");
+			{
+				/* We make the assumption (might be wrong) that any bitvector whos unsigned decimal value is
+				 * is zero is interpreted as "false", otherwise it is true.
+				 *
+				 * This may not be the interpretation we actually want!
+				 */
+				Expr::Width bitWidth=e->getWidth();
+				*p << "(bvugt"; p->pushIndent(); printSeperator();
+				// We assume is e is a bitvector
+				printExpression(e,SORT_BITVECTOR); printSeperator();
+				*p << "(_ bv0 " << bitWidth << ")"; p->popIndent(); printSeperator(); //Zero bitvector of required width
+				*p << ")";
+
+				klee_warning("ExprSMTLIBPrinter : Casting a bitvector to bool!");
+
+			}
 				break;
 			default:
 				assert(0 && "Unsupported cast!");
