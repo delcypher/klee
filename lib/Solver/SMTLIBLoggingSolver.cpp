@@ -26,6 +26,14 @@ using namespace klee;
 using namespace llvm;
 using namespace klee::util;
 
+namespace SMTLIBOpts
+{
+	//Defined elsewhere
+	extern llvm::cl::opt<bool> makeHumanReadableSMTLIB;
+	extern llvm::cl::opt<bool> useSMTLIBLetExpressions;
+}
+
+
 
 ///This SolverImpl will log queries to a file in the SMTLIBv2 format
 ///and pass the query down to the underlying solver.
@@ -34,7 +42,7 @@ using namespace klee::util;
 class SMTLIBLoggingSolver : public SolverImpl {
   Solver *solver;
   std::ofstream os;
-  ExprSMTLIBLetPrinter printer;
+  ExprSMTLIBPrinter* printer;
   unsigned queryCount;
   double startTime;
 
@@ -45,12 +53,12 @@ class SMTLIBLoggingSolver : public SolverImpl {
     os << ";SMTLIBv2 Query " << queryCount++ << " -- "
        << "Type: " << typeName << ", "
        << "Instructions: " << instructions << "\n";
-    printer.setQuery(query);
+    printer->setQuery(query);
 
     if(objects!=NULL)
-    	printer.setArrayValuesToGet(*objects);
+    	printer->setArrayValuesToGet(*objects);
 
-    printer.generateOutput();
+    printer->generateOutput();
     os << "\n";
     
     startTime = getWallTime();
@@ -70,12 +78,18 @@ public:
     queryCount(0),
     startTime(0)
   {
+	  //Setup the printer
+	  printer = (SMTLIBOpts::useSMTLIBLetExpressions)?
+			    (new ExprSMTLIBLetPrinter()):
+			    (new ExprSMTLIBPrinter());
+
 	  //Configure the SMTLIBv2 printer
-	  printer.setHumanReadable(false);
-	  printer.setOutput(os);
+	  printer->setHumanReadable(SMTLIBOpts::makeHumanReadableSMTLIB);
+	  printer->setOutput(os);
   }
 
   ~SMTLIBLoggingSolver() {
+	delete printer;
     delete solver;
   }
   

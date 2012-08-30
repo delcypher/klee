@@ -27,13 +27,17 @@
 #include "SolverStats.h"
 
 #include "llvm/Support/CommandLine.h"
-namespace llvm
+namespace SMTLIBOpts
 {
-  cl::opt<bool>
+  llvm::cl::opt<bool>
   useSMTLIBLetExpressions("smtlibv2-solver-use-lets",
-                 cl::desc("If using smtlibv2 solver use let expressions to abbreviate (default=on) (see -solver)."),
-                 cl::init(true));
+                 llvm::cl::desc("If using smtlibv2 solver use let expressions to abbreviate (default=on) (see -solver)."),
+                 llvm::cl::init(true));
 
+  llvm::cl::opt<bool>
+  makeHumanReadableSMTLIB("smtlibv2-solver-human-readable",
+                 llvm::cl::desc("If using smtlibv2 solver make the queries human readable (default=off) (see -solver)."),
+                 llvm::cl::init(false));
 
 }
 
@@ -135,12 +139,12 @@ namespace klee
   		/* Let the command line set which printer to
   		 * use.
   		 */
-  		printer=llvm::useSMTLIBLetExpressions?
+  		printer=SMTLIBOpts::useSMTLIBLetExpressions?
   				(new ExprSMTLIBLetPrinter()):
   				(new ExprSMTLIBPrinter());
 		//set options
 		printer->setLogic(ExprSMTLIBPrinter::QF_AUFBV);
-		printer->setHumanReadable(false);
+		printer->setHumanReadable(SMTLIBOpts::makeHumanReadableSMTLIB);
 
   		timeout.tv_nsec = timeout.tv_sec = 0;
 
