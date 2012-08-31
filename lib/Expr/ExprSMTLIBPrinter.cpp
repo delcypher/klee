@@ -192,9 +192,23 @@ namespace klee
 				/* These operators expected SORT_ANY arguments.
 				 * In the SMTLIBv2 language only "=" supports SORT_ANY but
 				 * in generateSMTLIBKeyword() the operators And,Or,Xor automatically
-				 * work out what sort they need to be so we won't try to do any casting
+				 * work out what sort they need to be so we won't try to do any casting of the expression
+				 * itself. However we do need to enforce that both children of the same type.
 				 */
-				printSortArgsExpr(e,SORT_ANY);
+			{
+				SMTLIB_SORT s=SORT_BOOL;
+				/* If using SORT_ANY any we must ensure that the operands are of the same sort.
+				 * Our preference is if either kid is a BitVector then we should cast the other
+				 * argument to a bitvector. This is because this is our preferred type of cast (bool to bitvector).
+				 *
+				 * If that fails we we will exptect a bool instead.
+				 */
+				if(getSort(e->getKid(0))==SORT_BITVECTOR || getSort(e->getKid(1)) ==SORT_BITVECTOR)
+					s=SORT_BITVECTOR;
+
+				printSortArgsExpr(e,s);
+
+			}
 				return;
 
 
@@ -668,6 +682,10 @@ namespace klee
 		switch(sort)
 		{
 			case SORT_BITVECTOR:
+				if(humanReadable)
+				{
+					p->breakLineI(); *p << ";Performing implicit bool to bitvector cast"; p->breakLine();
+				}
 				//We assume the e is a bool that we need to cast to a bitvector sort.
 				*p << "(ite"; p->pushIndent(); printSeperator();
 				printExpression(e,SORT_BOOL); printSeperator();
@@ -683,6 +701,10 @@ namespace klee
 				 * This may not be the interpretation we actually want!
 				 */
 				Expr::Width bitWidth=e->getWidth();
+				if(humanReadable)
+				{
+					p->breakLineI(); *p << ";Performing (bad) implicit bitvector to bool cast"; p->breakLine();
+				}
 				*p << "(bvugt"; p->pushIndent(); printSeperator();
 				// We assume is e is a bitvector
 				printExpression(e,SORT_BITVECTOR); printSeperator();
@@ -709,13 +731,23 @@ namespace klee
 			printSeperator();
 			printExpression(e->getKid(0),SORT_BOOL);
 
+			/* We need to enforce that the next two operands are of the same sort.
+			 * If either is a bitvector then we want a bitvector as this will trigger
+			 * the more desirable cast (bool -> bitvector)
+			 *
+			 * If that fails we will request that the type of expression is SORT_BOOL
+			 */
+			SMTLIB_SORT s=SORT_BOOL;
+			if(getSort(e->getKid(1))==SORT_BITVECTOR || getSort(e->getKid(2)) ==SORT_BITVECTOR)
+				s=SORT_BITVECTOR;
+
 			//if true
 			printSeperator();
-			printExpression(e->getKid(1),SORT_ANY);
+			printExpression(e->getKid(1),s);
 
 			//if false
 			printSeperator();
-			printExpression(e->getKid(2),SORT_ANY);
+			printExpression(e->getKid(2),s);
 
 
 		p->popIndent(); //pop indent added for recursive call
@@ -739,6 +771,7 @@ namespace klee
 		printSeperator();
 		*p << ")";
 	}
+
 
 	void ExprSMTLIBPrinter::mangleQuery()
 	{
