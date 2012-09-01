@@ -703,7 +703,7 @@ namespace klee
 				Expr::Width bitWidth=e->getWidth();
 				if(humanReadable)
 				{
-					p->breakLineI(); *p << ";Performing (bad) implicit bitvector to bool cast"; p->breakLine();
+					p->breakLineI(); *p << ";Performing implicit bitvector to bool cast"; p->breakLine();
 				}
 				*p << "(bvugt"; p->pushIndent(); printSeperator();
 				// We assume is e is a bitvector
@@ -711,7 +711,8 @@ namespace klee
 				*p << "(_ bv0 " << bitWidth << ")"; p->popIndent(); printSeperator(); //Zero bitvector of required width
 				*p << ")";
 
-				klee_warning("ExprSMTLIBPrinter : Casting a bitvector to bool!");
+				if(bitWidth!=Expr::Bool)
+					klee_warning("ExprSMTLIBPrinter : Casting a bitvector (length ",bitWidth,") to bool!");
 
 			}
 				break;
