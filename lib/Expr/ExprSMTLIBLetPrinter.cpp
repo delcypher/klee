@@ -107,7 +107,7 @@ namespace klee
 			 * doesn't match the sort of the abbreviation. Not really very efficient (calls bindings.find() twice),
 			 * we'll cast and call ourself again but with the correct expectedSort.
 			 */
-			if(expectedSort!= SORT_ANY && getSort(e) != expectedSort)
+			if(getSort(e) != expectedSort)
 			{
 				printCastToSort(e,expectedSort);
 				return;
@@ -148,7 +148,9 @@ namespace klee
 
 				//Disable abbreviations so none are used here.
 				disablePrintedAbbreviations=true;
-				printExpression(i->first,SORT_ANY); //We can abbreviate SORT_BOOL or SORT_BITVECTOR in let expressions
+
+				//We can abbreviate SORT_BOOL or SORT_BITVECTOR in let expressions
+				printExpression(i->first,getSort(i->first));
 
 				p->popIndent();
 				printSeperator();

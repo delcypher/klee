@@ -56,8 +56,7 @@ namespace klee {
 			enum SMTLIB_SORT
 			{
 				SORT_BITVECTOR,
-				SORT_BOOL,
-				SORT_ANY ///< This a special sort for the ite and = operators that prevents casting.
+				SORT_BOOL
 			};
 
 
@@ -208,10 +207,16 @@ namespace klee {
 			virtual void printExtractExpr(const ref<ExtractExpr>& e);
 			virtual void printCastExpr(const ref<CastExpr>& e);
 			virtual void printNotEqualExpr(const ref<NeExpr>& e);
-			virtual void printSelectExpr(const ref<SelectExpr>& e);
+			virtual void printSelectExpr(const ref<SelectExpr>& e, ExprSMTLIBPrinter::SMTLIB_SORT s);
 
 			//For the set of operators that take sort "s" arguments
 			virtual void printSortArgsExpr(const ref<Expr>& e, ExprSMTLIBPrinter::SMTLIB_SORT s);
+
+			///For the set of operators that come in two sorts (e.g. (and () ()) (bvand () ()) )
+			///These are and,xor,or,not
+			/// \param e the Expression to print
+			/// \param s the sort of the expression we want
+			virtual void printLogicalOrBitVectorExpr(const ref<Expr>& e, ExprSMTLIBPrinter::SMTLIB_SORT s);
 
 			///Recursively prints updatesNodes
 			virtual void printUpdatesAndArray(const UpdateNode* un, const Array* root);

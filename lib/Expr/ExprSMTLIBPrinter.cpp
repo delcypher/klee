@@ -145,7 +145,7 @@ namespace klee
 	void ExprSMTLIBPrinter::printExpression(const ref<Expr>& e, ExprSMTLIBPrinter::SMTLIB_SORT expectedSort)
 	{
 		//check if casting might be necessary
-		if(expectedSort != SORT_ANY && getSort(e) != expectedSort)
+		if(getSort(e) != expectedSort)
 		{
 			printCastToSort(e,expectedSort);
 			return;
@@ -182,33 +182,28 @@ namespace klee
 
 			case Expr::Select:
 				//the if-then-else expression.
-				printSelectExpr(cast<SelectExpr>(e));
+				printSelectExpr(cast<SelectExpr>(e),expectedSort);
 				return;
 
 			case Expr::Eq:
+				/* The "=" operator is special in that it can take any sort but we must
+				 * enforce that both arguments are the same type. We do this a lazy way
+				 * by enforcing the second argument is of the same type as the first.
+				 */
+				printSortArgsExpr(e,getSort(e->getKid(0)));
+
+				return;
+
 			case Expr::And:
 			case Expr::Or:
 			case Expr::Xor:
-				/* These operators expected SORT_ANY arguments.
-				 * In the SMTLIBv2 language only "=" supports SORT_ANY but
-				 * in generateSMTLIBKeyword() the operators And,Or,Xor automatically
-				 * work out what sort they need to be so we won't try to do any casting of the expression
-				 * itself. However we do need to enforce that both children of the same type.
+			case Expr::Not:
+				/* These operators have a bitvector version and a bool version.
+				 * For these operators only (e.g. wouldn't apply to bvult) if the expected sort the
+				 * expression is T then that implies the arguments are also of type T.
 				 */
-			{
-				SMTLIB_SORT s=SORT_BOOL;
-				/* If using SORT_ANY any we must ensure that the operands are of the same sort.
-				 * Our preference is if either kid is a BitVector then we should cast the other
-				 * argument to a bitvector. This is because this is our preferred type of cast (bool to bitvector).
-				 *
-				 * If that fails we we will exptect a bool instead.
-				 */
-				if(getSort(e->getKid(0))==SORT_BITVECTOR || getSort(e->getKid(1)) ==SORT_BITVECTOR)
-					s=SORT_BITVECTOR;
+				printLogicalOrBitVectorExpr(e,expectedSort);
 
-				printSortArgsExpr(e,s);
-
-			}
 				return;
 
 
@@ -299,9 +294,15 @@ namespace klee
 		p->pushIndent();
 		printSeperator();
 
-		printExpression(e->getKid(0),SORT_BOOL);
+		/* The "=" operators allows both sorts. We assume
+		 * that the second argument sort should be forced to be the same sort as the
+		 * first argument
+		 */
+		SMTLIB_SORT s = getSort(e->getKid(0));
+
+		printExpression(e->getKid(0),s);
 		printSeperator();
-		printExpression(e->getKid(1),SORT_BOOL);
+		printExpression(e->getKid(1),s);
 		p->popIndent();
 		printSeperator();
 
@@ -314,8 +315,6 @@ namespace klee
 
 	const char* ExprSMTLIBPrinter::getSMTLIBKeyword(const ref<Expr>& e)
 	{
-		//Check if the children (lazy check) are boolean
-		bool hasBooleanArguments= e->getKid(0)->getWidth() == Expr::Bool;
 
 		switch(e->getKind())
 		{
@@ -334,13 +333,10 @@ namespace klee
 			case Expr::URem: return "bvurem";
 			case Expr::SRem: return "bvsrem";
 
-			//There is a little ambiguity in the Expr classes.
-			//It is not clear if NotExpr, AndExpr, OrExpr and XorExpr are bitwise or logical operators.
-			// We resolve this by examining the children
-			case Expr::Not: return hasBooleanArguments?"not":"bvnot";
-			case Expr::And: return hasBooleanArguments?"and":"bvand";
-			case Expr::Or:  return hasBooleanArguments?"or":"bvor";
-			case Expr::Xor: return hasBooleanArguments?"xor":"bvxor";
+
+			/* And, Xor, Not and Or are not handled here because there different versions
+			 * for different sorts. See printLogicalOrBitVectorExpr()
+			 */
 
 
 			case Expr::Shl: return "bvshl";
@@ -721,7 +717,7 @@ namespace klee
 		}
 	}
 
-	void ExprSMTLIBPrinter::printSelectExpr(const ref<SelectExpr>& e)
+	void ExprSMTLIBPrinter::printSelectExpr(const ref<SelectExpr>& e, ExprSMTLIBPrinter::SMTLIB_SORT s)
 	{
 		//This is the if-then-else expression
 
@@ -732,15 +728,9 @@ namespace klee
 			printSeperator();
 			printExpression(e->getKid(0),SORT_BOOL);
 
-			/* We need to enforce that the next two operands are of the same sort.
-			 * If either is a bitvector then we want a bitvector as this will trigger
-			 * the more desirable cast (bool -> bitvector)
-			 *
-			 * If that fails we will request that the type of expression is SORT_BOOL
+			/* This operator is special in that the remaining children
+			 * can be of any sort.
 			 */
-			SMTLIB_SORT s=SORT_BOOL;
-			if(getSort(e->getKid(1))==SORT_BITVECTOR || getSort(e->getKid(2)) ==SORT_BITVECTOR)
-				s=SORT_BITVECTOR;
 
 			//if true
 			printSeperator();
@@ -773,6 +763,46 @@ namespace klee
 		*p << ")";
 	}
 
+	void ExprSMTLIBPrinter::printLogicalOrBitVectorExpr(const ref<Expr>& e, ExprSMTLIBPrinter::SMTLIB_SORT s)
+	{
+		/* For these operators it is the case that the expected sort is the same as the sorts
+		 * of the arguments.
+		 */
+
+		*p << "(";
+		switch(e->getKind())
+		{
+			case Expr::And:
+				*p << ((s==SORT_BITVECTOR)?"bvand":"and");
+				break;
+			case Expr::Not:
+				*p << ((s==SORT_BITVECTOR)?"bvnot":"not");
+				break;
+			case Expr::Or:
+				*p << ((s==SORT_BITVECTOR)?"bvor":"or");
+				break;
+
+			case Expr::Xor:
+				*p << ((s==SORT_BITVECTOR)?"bvxor":"xor");
+				break;
+			default:
+				*p << "ERROR"; // this shouldn't happen
+		}
+		*p << " ";
+
+		p->pushIndent(); //add indent for recursive call
+
+		//loop over children and recurse into each expecting they are of sort "s"
+		for(unsigned int i=0; i < e->getNumKids(); i++)
+		{
+			printSeperator();
+			printExpression(e->getKid(i),s);
+		}
+
+		p->popIndent(); //pop indent added for recursive call
+		printSeperator();
+		*p << ")";
+	}
 
 	void ExprSMTLIBPrinter::mangleQuery()
 	{
