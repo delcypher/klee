@@ -69,7 +69,7 @@ namespace klee
 		  bool haveRunOutOfTime();
 
 		  bool generateSMTLIBv2File(const Query& q, const std::vector<const Array*> arrays);
-		  bool invokeSolver();
+		  bool invokeSolver(const Query& q, const std::vector<const Array*> arrays);
 		  bool parseSolverOutput(const std::vector<const Array*> &objects,
 					std::vector< std::vector<unsigned char> > &values,
 					bool &hasSolution);
@@ -254,11 +254,7 @@ namespace klee
 		//we only query for a "counter example" is objects is not empty!
 		if(!objects.empty()) ++stats::queryCounterexamples;
 
-
-		if(!generateSMTLIBv2File(query,objects))
-			return false;
-
-		if(!invokeSolver())
+		if(!invokeSolver(query,objects))
 			return false;
 
 		if(!parseSolverOutput(objects,values,hasSolution))
@@ -278,7 +274,7 @@ namespace klee
 	}
 
 
-	bool SMTLIBSolverImpl::invokeSolver()
+	bool SMTLIBSolverImpl::invokeSolver(const Query& q, const std::vector<const Array*> arrays)
 	{
 		//Record the start time
 		if(clock_gettime(CLOCK_MONOTONIC,&startTime)==-1)
@@ -330,6 +326,15 @@ namespace klee
 			{
 				klee_warning("SMTLIBSolverImpl: The Solver timed out!");
 				kill(childPid,SIGTERM);
+				cerr << "KLEE: SMTLIBSolverImpl: Reaping child process (" << childPid << ")..."; cerr.flush();
+
+				do
+				{
+					//Loop because we may get interrupted by SIGALRM
+					result=waitpid(childPid,NULL,0);
+				} while(result == -1 && errno== EINTR);
+				cerr << "done" << endl;
+
 				return false;
 			}
 
@@ -353,7 +358,7 @@ namespace klee
 				//check for our specialExitCode that indicates the child process failed in some way.
 				if(WEXITSTATUS(status) == specialExitCode)
 				{
-					klee_error("SMTLIBSolverImpl: The solver could not be executed.");
+					klee_warning("SMTLIBSolverImpl: The solver could not be executed.");
 					return false;
 				}
 
@@ -364,7 +369,7 @@ namespace klee
 			}
 			else
 			{
-				klee_error("SMTLIBSolverImpl: The Solver didn't exit normally.");
+				klee_warning("SMTLIBSolverImpl: The Solver didn't exit normally.");
 				return false;
 			}
 
@@ -372,6 +377,22 @@ namespace klee
 		else
 		{
 			//child code
+
+			//If we get killed before calling execlp() we don't want KLEE's signal handlers to be called.
+			signal(SIGINT,SIG_DFL);
+			signal(SIGQUIT,SIG_DFL);
+			signal(SIGTERM,SIG_DFL);
+
+			signal(SIGALRM,SIG_DFL);//The child process doesn't need the time updates.
+
+			/* Generate the SMTLIBv2 query. We do it in the child because this process may take a long
+			 * time and so should be included as part of the timeout.
+			 */
+			if(!generateSMTLIBv2File(q,arrays))
+			{
+				klee_error("SMTLIBSolverImpl (Child) : Failed to generated query!");
+				exit(specialExitCode);
+			}
 
 
 			//open the output file (truncate it) for the child and have stdout go into it
