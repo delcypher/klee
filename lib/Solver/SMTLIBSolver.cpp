@@ -41,7 +41,7 @@ namespace SMTLIBOpts
 
   llvm::cl::opt<bool>
   useSMTLIBPipe("smtlibv2-solver-use-pipe",
-                 llvm::cl::desc("If using smtlibv2 solver use a pipe to send the query to the solver(default=off) (see -solver)."),
+                 llvm::cl::desc("If using smtlibv2 solver use a pipe to send the query to the solver(default=off) (see -solver) (experimental)."),
                  llvm::cl::init(false));
 
 }
@@ -81,6 +81,9 @@ namespace klee
 
 		  virtual void runChildCode(const Query&q, const std::vector<const Array*> arrays);
 
+		  ///Called if the solver doesn't execute correctly to perform a clean up.
+		  virtual void performCleanUp() {};
+
 
 		public:
 
@@ -118,13 +121,16 @@ namespace klee
  			         const string& _pathToOutputTempFile,
  			         const string& _pathToInputTempFile
  					);
-			void setRecordQueryFileSizes(const std::string& logPath);
 
-			void runChildCode(const Query&q, const std::vector<const Array*> arrays);
 
 			static pid_t solverProcess; //Kludge so the signal handler works
 		private:
 			static void cleanUpHandler(int signum);
+
+		protected:
+			virtual void performCleanUp();
+			virtual void setRecordQueryFileSizes(const std::string& logPath);
+			virtual void runChildCode(const Query&q, const std::vector<const Array*> arrays);
 
 
 	};
@@ -416,6 +422,9 @@ namespace klee
 				} while(result == -1 && errno== EINTR);
 				cerr << "done" << endl;
 
+				//Perform any additonal needed clean up.
+				performCleanUp();
+
 				return false;
 			}
 
@@ -423,6 +432,7 @@ namespace klee
 			if(result < 0 )
 			{
 				klee_warning("SMTLIBSolverImpl: Failed to clean up child process.");
+				performCleanUp();
 				return false;
 			}
 
@@ -440,6 +450,7 @@ namespace klee
 				if(WEXITSTATUS(status) == specialExitCode)
 				{
 					klee_warning("SMTLIBSolverImpl: The solver could not be executed.");
+					performCleanUp();
 					return false;
 				}
 
@@ -451,6 +462,7 @@ namespace klee
 			else
 			{
 				klee_warning("SMTLIBSolverImpl: The Solver didn't exit normally.");
+				performCleanUp();
 				return false;
 			}
 
@@ -746,11 +758,10 @@ namespace klee
 		//Remove the SIGALRM handler, we don't want it!
 		signal(SIGALRM,SIG_IGN);
 
-		//If we get killed by the parent we need to clean up any mess we made
-		//This should also mean KLEE's original signal handlers don't get called.
-		signal(SIGTERM,&(klee::SMTLIBPipedSolverImpl::cleanUpHandler));
-		signal(SIGINT,&klee::SMTLIBPipedSolverImpl::cleanUpHandler);
-		signal(SIGQUIT,&klee::SMTLIBPipedSolverImpl::cleanUpHandler);
+		//Remove KLEE's own signal handlers because we inherited them.
+		signal(SIGTERM,SIG_DFL);
+		signal(SIGINT,SIG_DFL);
+		signal(SIGQUIT,SIG_DFL);
 
 
 		/* We now fork to setup communication between us and the solver.
@@ -770,6 +781,12 @@ namespace klee
 		{
 			//Parent code, write SMTLIBv2 query writing to the named pipe
 
+			//If we get killed by the parent we need to clean up any mess we made
+			//This should also mean KLEE's original signal handlers don't get called.
+			signal(SIGTERM,&(klee::SMTLIBPipedSolverImpl::cleanUpHandler));
+			signal(SIGINT,&klee::SMTLIBPipedSolverImpl::cleanUpHandler);
+			signal(SIGQUIT,&klee::SMTLIBPipedSolverImpl::cleanUpHandler);
+
 			/* Generate the SMTLIBv2 query. We do it in the child because this process may take a long
 			 * time and so should be included as part of the timeout.
 			 */
@@ -787,13 +804,17 @@ namespace klee
 			if(WIFEXITED(status))
 			{
 				if(WEXITSTATUS(status)==specialExitCode)
+				{
 					exit(specialExitCode); //something went wrong
+				}
 
 				//We're completed properly so exit cleanly like KLEE expects.
 				exit(0);
 			}
 			else
+			{
 				exit(specialExitCode); //something went wrong
+			}
 
 
 
@@ -836,6 +857,7 @@ namespace klee
 	{
 		if(solverProcess!=0)
 		{
+			cerr << "SMTLIBPipedSolverImpl : Killing and reaping process " << solverProcess; cerr.flush();
 			//Kill the running solver
 			kill(solverProcess,SIGKILL);
 
@@ -843,7 +865,38 @@ namespace klee
 			int result=0;
 
 			do { result=waitpid(solverProcess,NULL,0);} while(result==-1);
+			cerr << "done" << endl;
 		}
+
+		//Now resend ourself the original signal so we exit.
+		signal(signum,SIG_DFL);
+		kill(getpid(),signum);
+	}
+
+	void SMTLIBPipedSolverImpl::performCleanUp()
+	{
+		cerr << "SMTLIBPipedSolverImpl: Rebuilding pipe...";cerr.flush();
+		int result=0;
+		//delete the named pipe because it may have junk in it
+		result=unlink(pathToSolverInputFile.c_str());
+		if(result==-1)
+		{
+			cerr << "Failed to remove old pipe!" << endl;
+			perror("unlink:");
+		}
+		else
+		{
+			//Recreate pipe
+			result=mkfifo(pathToSolverInputFile.c_str(),0666);
+			if(result==-1)
+			{
+				cerr << "Failed to create new pipe!" << endl;
+				perror("mkfifo:");
+			}
+
+			cerr << "done" << endl;
+		}
+
 	}
 
 }
