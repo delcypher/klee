@@ -754,8 +754,11 @@ namespace klee
 
 
 		/* We now fork to setup communication between us and the solver.
-		 *
+		 * We flush the stdout and stderr just in case there is anything left in
+		 * their buffers.
 		 */
+		fflush(stdout);
+		fflush(stderr);
 		solverProcess = fork();
 		if(solverProcess==-1)
 		{
