@@ -310,6 +310,9 @@ Solver *constructSolverChain(Solver *baseSolver,
     solver = createPCLoggingSolver(solver, 
                                    stpQueryLogPath);
 
+  if(UseQuerySMTLIBLog)
+	  solver = createSMTLIBLoggingSolver(solver,smtlibv2QueryLogPath);
+
   if (UseFastCexSolver)
     solver = createFastCexSolver(solver);
 
@@ -329,8 +332,7 @@ Solver *constructSolverChain(Solver *baseSolver,
     solver = createPCLoggingSolver(solver, 
                                    queryPCLogPath);
   
-  if(UseQuerySMTLIBLog)
-	  solver = createSMTLIBLoggingSolver(solver,smtlibv2QueryLogPath);
+
 
   return solver;
 }
