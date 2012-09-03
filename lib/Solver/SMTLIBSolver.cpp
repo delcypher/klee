@@ -39,6 +39,11 @@ namespace SMTLIBOpts
                  llvm::cl::desc("If using smtlibv2 solver make the queries human readable (default=off) (see -solver)."),
                  llvm::cl::init(false));
 
+  llvm::cl::opt<bool>
+  useSMTLIBPipe("smtlibv2-solver-use-pipe",
+                 llvm::cl::desc("If using smtlibv2 solver use a pipe to send the query to the solver(default=off) (see -solver)."),
+                 llvm::cl::init(false));
+
 }
 
 using namespace std;
@@ -104,13 +109,37 @@ namespace klee
 
 	};
 
+	///A version of the SMTLIBv2 solver that uses a named pipe to send the query to the solver.
+	/// It forks twice, once for generating SMTLIBv2 query and once for the solver to receive.
+	class SMTLIBPipedSolverImpl : public SMTLIBSolverImpl
+	{
+		public:
+			SMTLIBPipedSolverImpl(const string& _pathToSolver,
+ 			         const string& _pathToOutputTempFile,
+ 			         const string& _pathToInputTempFile
+ 					);
+			void setRecordQueryFileSizes(const std::string& logPath);
+
+			void runChildCode(const Query&q, const std::vector<const Array*> arrays);
+
+			static pid_t solverProcess; //Kludge so the signal handler works
+		private:
+			static void cleanUpHandler(int signum);
+
+
+	};
+
+
 
 
 
 	SMTLIBSolver::SMTLIBSolver(std::string& pathToSolver,
 			const std::string& pathToOutputTempFile,
 			const std::string& pathToInputTempFile) :
-	SolverWithTimeOut( new SMTLIBSolverImpl(pathToSolver,pathToOutputTempFile,pathToInputTempFile))
+	SolverWithTimeOut( SMTLIBOpts::useSMTLIBPipe?
+						(new SMTLIBPipedSolverImpl(pathToSolver,pathToOutputTempFile,pathToInputTempFile)):
+						(new SMTLIBSolverImpl(pathToSolver,pathToOutputTempFile,pathToInputTempFile))
+					)
 	{
 	}
 
@@ -682,19 +711,27 @@ namespace klee
 			return false;//we've got some time left.
 	}
 
-	///A version of the SMTLIBv2 solver that uses a named pipe to send the query to the solver.
-	class SMTLIBPipedSolverImpl : public SMTLIBSolverImpl
-	{
-		public:
-			SMTLIBPipedSolverImpl(const string& _pathToSolver,
- 			         const string& _pathToOutputTempFile,
- 			         const string& _pathToInputTempFile
- 					) : SMTLIBSolverImpl(_pathToSolver, _pathToOutputTempFile, _pathToInputTempFile) {};
-			void setRecordQueryFileSizes(const std::string& logPath);
 
-			void runChildCode(const Query&q, const std::vector<const Array*> arrays);
+	pid_t SMTLIBPipedSolverImpl::solverProcess=0;
 
-	};
+	SMTLIBPipedSolverImpl::SMTLIBPipedSolverImpl(const string& _pathToSolver,
+			         const string& _pathToOutputTempFile,
+			         const string& _pathToInputTempFile
+					) : SMTLIBSolverImpl(_pathToSolver, _pathToOutputTempFile, _pathToInputTempFile)
+		{
+			klee_message("Using SMTLIBPipedSolverImpl");
+
+
+			//Create the new named pipe that will be used for the duration.
+			int result=mkfifo(pathToSolverInputFile.c_str(),0666);
+			if(result == -1)
+			{
+				cerr << "Error : Failed to created named pipe " << pathToSolverInputFile.c_str() << endl;
+				perror("mkfifo:");
+				exit(specialExitCode);
+			}
+		};
+
 
 	void SMTLIBPipedSolverImpl::setRecordQueryFileSizes(const std::string& logPath)
 	{
@@ -703,7 +740,107 @@ namespace klee
 
 	void SMTLIBPipedSolverImpl::runChildCode(const Query& q, const std::vector<const Array*> arrays)
 	{
+		int result=0;
+		solverProcess=0;
 
+		//Remove the SIGALRM handler, we don't want it!
+		signal(SIGALRM,SIG_IGN);
+
+		//If we get killed by the parent we need to clean up any mess we made
+		//This should also mean KLEE's original signal handlers don't get called.
+		signal(SIGTERM,&(klee::SMTLIBPipedSolverImpl::cleanUpHandler));
+		signal(SIGINT,&klee::SMTLIBPipedSolverImpl::cleanUpHandler);
+		signal(SIGQUIT,&klee::SMTLIBPipedSolverImpl::cleanUpHandler);
+
+
+		/* We now fork to setup communication between us and the solver.
+		 *
+		 */
+		solverProcess = fork();
+		if(solverProcess==-1)
+		{
+			klee_warning("Failed to fork again in child!");
+			exit(specialExitCode);
+		}
+
+		if(solverProcess > 0)
+		{
+			//Parent code, write SMTLIBv2 query writing to the named pipe
+
+			/* Generate the SMTLIBv2 query. We do it in the child because this process may take a long
+			 * time and so should be included as part of the timeout.
+			 */
+			if(!generateSMTLIBv2File(q,arrays))
+			{
+				klee_warning("SMTLIBSolverImpl (Child) : Failed to generated query!");
+				exit(specialExitCode);
+			}
+
+			int status=0;
+
+			//Now wait for child (the solver) to complete
+			do { result = waitpid(solverProcess,&status,0);} while (result == -1 && errno==EINTR);
+
+			if(WIFEXITED(status))
+			{
+				if(WEXITSTATUS(status)==specialExitCode)
+					exit(specialExitCode); //something went wrong
+
+				//We're completed properly so exit cleanly like KLEE expects.
+				exit(0);
+			}
+			else
+				exit(specialExitCode); //something went wrong
+
+
+
+		}
+		else
+		{
+			//child code, execute the solver reading the named pipe
+
+			//open the output file (truncate it) for the solver and have stdout (of the solver) go into it
+			if(freopen(pathToSolverOutputFile.c_str(),"w",stdout)==NULL)
+			{
+				klee_error("SMTLIBSolverImpl (Child): Child failed to redirect stdout.");
+				exit(specialExitCode);
+			}
+
+			/* Invoke the solver. We pass it as the 1st argument the name of SMTLIBv2 file we generated
+			 * earlier.
+			 */
+			if(execlp(pathToSolver.c_str(), pathToSolver.c_str(), pathToSolverInputFile.c_str(), (char*) NULL) == -1)
+			{
+				//We failed to invoke the solver
+				switch(errno)
+				{
+					case ENAMETOOLONG:
+						klee_warning("SMTLIBSolverImpl (child of child): The SMTLIBv2 solver path is too long!");
+						exit(specialExitCode);
+					case ENOENT:
+						cerr << "SMTLIBSolverImpl (child of child): The executable " << pathToSolver << " does not exist!" << endl;
+						exit(specialExitCode);
+					default:
+						cerr << "SMTLIBSolverImpl (child of child): Failed to invoke solver (" << pathToSolver << ")" << endl;
+						exit(specialExitCode);
+				}
+			}
+
+		}
+	}
+
+	void SMTLIBPipedSolverImpl::cleanUpHandler(int signum)
+	{
+		if(solverProcess!=0)
+		{
+			//Kill the running solver
+			kill(solverProcess,SIGKILL);
+
+			//Reap it so there isn't a zombie left behind
+			int result=0;
+
+			do { result=waitpid(solverProcess,NULL,0);} while(result==-1);
+		}
 	}
 
 }
