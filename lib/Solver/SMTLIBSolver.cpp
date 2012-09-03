@@ -46,7 +46,7 @@ namespace klee
 {
 	class SMTLIBSolverImpl : public SolverImpl
 	{
-		private:
+		protected:
 		  string pathToSolver;
 		  string pathToSolverInputFile; //< The .smt2 file
 		  string pathToSolverOutputFile; //< The result from the solver
@@ -69,10 +69,12 @@ namespace klee
 		  bool haveRunOutOfTime();
 
 		  bool generateSMTLIBv2File(const Query& q, const std::vector<const Array*> arrays);
-		  bool invokeSolver(const Query& q, const std::vector<const Array*> arrays);
+		  virtual bool invokeSolver(const Query& q, const std::vector<const Array*> arrays);
 		  bool parseSolverOutput(const std::vector<const Array*> &objects,
 					std::vector< std::vector<unsigned char> > &values,
 					bool &hasSolution);
+
+		  virtual void runChildCode(const Query&q, const std::vector<const Array*> arrays);
 
 
 		public:
@@ -91,7 +93,7 @@ namespace klee
 
 			///If called the size of query files (.smt2) will be logged to
 			///\param logPath
-			void setRecordQueryFileSizes(const std::string& logPath);
+			virtual void setRecordQueryFileSizes(const std::string& logPath);
 
 			bool computeTruth(const Query&, bool &isValid);
 			bool computeValue(const Query&, ref<Expr> &result);
@@ -273,6 +275,56 @@ namespace klee
 		return true;
 	}
 
+	void SMTLIBSolverImpl::runChildCode(const Query&q, const std::vector<const Array*> arrays)
+	{
+		//child code
+
+		//If we get killed before calling execlp() we don't want KLEE's signal handlers to be called.
+		signal(SIGINT,SIG_DFL);
+		signal(SIGQUIT,SIG_DFL);
+		signal(SIGTERM,SIG_DFL);
+
+		signal(SIGALRM,SIG_DFL);//The child process doesn't need the time updates.
+
+		/* Generate the SMTLIBv2 query. We do it in the child because this process may take a long
+		 * time and so should be included as part of the timeout.
+		 */
+		if(!generateSMTLIBv2File(q,arrays))
+		{
+			klee_error("SMTLIBSolverImpl (Child) : Failed to generated query!");
+			exit(specialExitCode);
+		}
+
+
+		//open the output file (truncate it) for the child and have stdout go into it
+		if(freopen(pathToSolverOutputFile.c_str(),"w",stdout)==NULL)
+		{
+			klee_error("SMTLIBSolverImpl (Child): Child failed to redirect stdout.");
+			exit(specialExitCode);
+		}
+
+		/* Invoke the solver. We pass it as the 1st argument the name of SMTLIBv2 file we generated
+		 * earlier.
+		 */
+		if(execlp(pathToSolver.c_str(), pathToSolver.c_str(), pathToSolverInputFile.c_str(), (char*) NULL) == -1)
+		{
+			//We failed to invoke the solver
+			switch(errno)
+			{
+				case ENAMETOOLONG:
+					klee_warning("SMTLIBSolverImpl (child): The SMTLIBv2 solver path is too long!");
+					exit(specialExitCode);
+				case ENOENT:
+					cerr << "SMTLIBSolverImpl (child): The executable " << pathToSolver << " does not exist!" << endl;
+					exit(specialExitCode);
+				default:
+					cerr << "SMTLIBSolverImpl (child): Failed to invoke solver (" << pathToSolver << ")" << endl;
+					exit(specialExitCode);
+			}
+		}
+
+
+	}
 
 	bool SMTLIBSolverImpl::invokeSolver(const Query& q, const std::vector<const Array*> arrays)
 	{
@@ -377,52 +429,7 @@ namespace klee
 		else
 		{
 			//child code
-
-			//If we get killed before calling execlp() we don't want KLEE's signal handlers to be called.
-			signal(SIGINT,SIG_DFL);
-			signal(SIGQUIT,SIG_DFL);
-			signal(SIGTERM,SIG_DFL);
-
-			signal(SIGALRM,SIG_DFL);//The child process doesn't need the time updates.
-
-			/* Generate the SMTLIBv2 query. We do it in the child because this process may take a long
-			 * time and so should be included as part of the timeout.
-			 */
-			if(!generateSMTLIBv2File(q,arrays))
-			{
-				klee_error("SMTLIBSolverImpl (Child) : Failed to generated query!");
-				exit(specialExitCode);
-			}
-
-
-			//open the output file (truncate it) for the child and have stdout go into it
-			if(freopen(pathToSolverOutputFile.c_str(),"w",stdout)==NULL)
-			{
-				klee_error("SMTLIBSolverImpl (Child): Child failed to redirect stdout.");
-				exit(specialExitCode);
-			}
-
-			/* Invoke the solver. We pass it as the 1st argument the name of SMTLIBv2 file we generated
-			 * earlier.
-			 */
-			if(execlp(pathToSolver.c_str(), pathToSolver.c_str(), pathToSolverInputFile.c_str(), (char*) NULL) == -1)
-			{
-				//We failed to invoke the solver
-				switch(errno)
-				{
-					case ENAMETOOLONG:
-						klee_warning("SMTLIBSolverImpl (child): The SMTLIBv2 solver path is too long!");
-						exit(specialExitCode);
-					case ENOENT:
-						cerr << "SMTLIBSolverImpl (child): The executable " << pathToSolver << " does not exist!" << endl;
-						exit(specialExitCode);
-					default:
-						cerr << "SMTLIBSolverImpl (child): Failed to invoke solver (" << pathToSolver << ")" << endl;
-						exit(specialExitCode);
-				}
-			}
-
-
+			runChildCode(q,arrays);
 		}
 
 	}
@@ -675,8 +682,28 @@ namespace klee
 			return false;//we've got some time left.
 	}
 
+	///A version of the SMTLIBv2 solver that uses a named pipe to send the query to the solver.
+	class SMTLIBPipedSolverImpl : public SMTLIBSolverImpl
+	{
+		public:
+			SMTLIBPipedSolverImpl(const string& _pathToSolver,
+ 			         const string& _pathToOutputTempFile,
+ 			         const string& _pathToInputTempFile
+ 					) : SMTLIBSolverImpl(_pathToSolver, _pathToOutputTempFile, _pathToInputTempFile) {};
+			void setRecordQueryFileSizes(const std::string& logPath);
 
+			void runChildCode(const Query&q, const std::vector<const Array*> arrays);
+
+	};
+
+	void SMTLIBPipedSolverImpl::setRecordQueryFileSizes(const std::string& logPath)
+	{
+		klee_warning("SMTLIBPipedSolverImpl : Cannot log file sizes.");
+	}
+
+	void SMTLIBPipedSolverImpl::runChildCode(const Query& q, const std::vector<const Array*> arrays)
+	{
+
+	}
 
 }
-
-
