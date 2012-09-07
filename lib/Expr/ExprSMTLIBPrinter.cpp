@@ -1,6 +1,5 @@
 
-//for klee_warning
-#include "../Core/Common.h"
+#include <iostream>
 
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
@@ -138,7 +137,7 @@ namespace klee
 				break;
 
 			default:
-				klee_warning("ExprSMTLIBPrinter::printConstant() : Unexpected Constant display mode");
+				std::cerr << "ExprSMTLIBPrinter::printConstant() : Unexpected Constant display mode" << std::endl;
 		}
 	}
 
@@ -409,7 +408,7 @@ namespace klee
 	{
 		if(p==NULL || query == NULL || o ==NULL)
 		{
-			klee_warning("Can't print SMTLIBv2. Ouput or query bad!");
+			std::cerr << "ExprSMTLIBPrinter::generateOutput() Can't print SMTLIBv2. Output or query bad!" << std::endl;
 			return;
 		}
 
@@ -550,7 +549,10 @@ namespace klee
 	void ExprSMTLIBPrinter::scan(const ref<Expr>& e)
 	{
 		if(e.isNull())
-			klee_error("ExprSMTLIBPrinter::scan() : Found NULL expression!");
+		{
+			std::cerr << "ExprSMTLIBPrinter::scan() : Found NULL expression!" << std::endl;
+			return;
+		}
 
 		if(isa<ConstantExpr>(e))
 			return; //we don't need to scan simple constants
@@ -708,7 +710,7 @@ namespace klee
 				*p << ")";
 
 				if(bitWidth!=Expr::Bool)
-					klee_warning("ExprSMTLIBPrinter : Casting a bitvector (length ",bitWidth,") to bool!");
+					std::cerr << "ExprSMTLIBPrinter : Warning. Casting a bitvector (length " << bitWidth << ") to bool!" << std::endl;
 
 			}
 				break;

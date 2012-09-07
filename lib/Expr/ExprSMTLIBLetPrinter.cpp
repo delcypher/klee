@@ -1,6 +1,4 @@
-//for klee_warning
-#include "../Core/Common.h"
-
+#include <iostream>
 #include "klee/util/ExprSMTLIBLetPrinter.h"
 
 using namespace std;
@@ -19,7 +17,7 @@ namespace klee
 	{
 		if(p==NULL || query == NULL || o ==NULL)
 		{
-			klee_warning("Can't print SMTLIBv2. Output or query bad!");
+			std::cerr << "Can't print SMTLIBv2. Output or query bad!" << std::endl;
 			return;
 		}
 
