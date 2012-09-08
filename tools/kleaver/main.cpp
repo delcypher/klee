@@ -12,6 +12,8 @@
 #include "klee/util/ExprPPrinter.h"
 #include "klee/util/ExprVisitor.h"
 
+#include "klee/util/ExprSMTLIBLetPrinter.h"
+
 #include "llvm/ADT/OwningPtr.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/CommandLine.h"
@@ -45,6 +47,7 @@ namespace {
   enum ToolActions {
     PrintTokens,
     PrintAST,
+    PrintSMTLIBv2,
     Evaluate
   };
 
@@ -54,11 +57,14 @@ namespace {
              llvm::cl::values(
              clEnumValN(PrintTokens, "print-tokens",
                         "Print tokens from the input file."),
+			clEnumValN(PrintSMTLIBv2, "print-smtlibv2",
+					   "Print parsed input file as SMT-LIBv2 query."),
              clEnumValN(PrintAST, "print-ast",
                         "Print parsed AST nodes from the input file."),
              clEnumValN(Evaluate, "evaluate",
                         "Print parsed AST nodes from the input file."),
              clEnumValEnd));
+
 
   enum BuilderKinds {
     DefaultBuilder,
@@ -276,6 +282,74 @@ static bool EvaluateInputAST(const char *Filename,
   return success;
 }
 
+static bool printInputAsSMTLIBv2(const char *Filename,
+                             const MemoryBuffer *MB,
+                             ExprBuilder *Builder)
+{
+	//Parse the input file
+	std::vector<Decl*> Decls;
+	Parser *P = Parser::Create(Filename, MB, Builder);
+	P->SetMaxErrors(20);
+	while (Decl *D = P->ParseTopLevelDecl())
+	{
+		Decls.push_back(D);
+	}
+
+	bool success = true;
+	if (unsigned N = P->GetNumErrors())
+	{
+		std::cerr << Filename << ": parse failure: "
+				   << N << " errors.\n";
+		success = false;
+	}
+
+	if (!success)
+	return false;
+
+	ExprSMTLIBLetPrinter printer;
+	printer.setHumanReadable(true);
+	printer.setOutput(std::cout);
+
+	unsigned int queryNumber = 0;
+	//Loop over the declarations
+	for (std::vector<Decl*>::iterator it = Decls.begin(), ie = Decls.end(); it != ie; ++it, ++queryNumber)
+	{
+		Decl *D = *it;
+		if (QueryCommand *QC = dyn_cast<QueryCommand>(D))
+		{
+			//Output header for this query as a SMT-LIBv2 comment
+			std::cout << ";Query " << queryNumber << std::endl;
+
+			/* Can't pass ConstraintManager constructor directly
+			 * as argument to Query object. Like...
+			 * query(ConstraintManager(QC->Constraints),QC->Query);
+			 *
+			 * For some reason if constructed this way the first
+			 * constraint in the constraint set is set to NULL and
+			 * will later cause a NULL pointer dereference.
+			 */
+			ConstraintManager constraintM(QC->Constraints);
+			Query query(constraintM,QC->Query);
+			printer.setQuery(query);
+
+			if(!QC->Objects.empty())
+				printer.setArrayValuesToGet(QC->Objects);
+
+			printer.generateOutput();
+			std::cout << std::endl;
+
+		}
+	}
+
+	//Clean up
+	for (std::vector<Decl*>::iterator it = Decls.begin(),
+			ie = Decls.end(); it != ie; ++it)
+		delete *it;
+	delete P;
+
+	return true;
+}
+
 int main(int argc, char **argv) {
   bool success = true;
 
@@ -339,6 +413,13 @@ int main(int argc, char **argv) {
 #else
     success = EvaluateInputAST(InputFile=="-" ? "<stdin>" : InputFile.c_str(),
                                MB.get(), Builder);
+#endif
+    break;
+  case PrintSMTLIBv2:
+#if LLVM_VERSION_CODE < LLVM_VERSION(2, 9)
+    success = printInputAsSMTLIBv2(InputFile=="-"? "<stdin>" : InputFile.c_str(), MB,Builder);
+#else
+    success = printInputAsSMTLIBv2(InputFile=="-"? "<stdin>" : InputFile.c_str(), MB.get(),Builder);
 #endif
     break;
   default:
