@@ -307,7 +307,6 @@ static bool printInputAsSMTLIBv2(const char *Filename,
 	return false;
 
 	ExprSMTLIBLetPrinter printer;
-	printer.setHumanReadable(true);
 	printer.setOutput(std::cout);
 
 	unsigned int queryNumber = 0;

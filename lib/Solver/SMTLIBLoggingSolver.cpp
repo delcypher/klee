@@ -26,7 +26,7 @@ using namespace klee;
 using namespace llvm;
 using namespace klee::util;
 
-namespace SMTLIBOpts
+namespace SMTLIBSolverOpts
 {
 	//Defined elsewhere
 	extern llvm::cl::opt<bool> makeHumanReadableSMTLIB;
@@ -79,12 +79,12 @@ public:
     startTime(0)
   {
 	  //Setup the printer
-	  printer = (SMTLIBOpts::useSMTLIBLetExpressions)?
+	  printer = (SMTLIBSolverOpts::useSMTLIBLetExpressions)?
 			    (new ExprSMTLIBLetPrinter()):
 			    (new ExprSMTLIBPrinter());
 
 	  //Configure the SMTLIBv2 printer
-	  printer->setHumanReadable(SMTLIBOpts::makeHumanReadableSMTLIB);
+	  printer->setHumanReadable(SMTLIBSolverOpts::makeHumanReadableSMTLIB);
 	  printer->setOutput(os);
   }
 

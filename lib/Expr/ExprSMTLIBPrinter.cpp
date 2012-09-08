@@ -22,6 +22,13 @@ namespace
 
 	);
 
+	llvm::cl::opt<bool> humanReadableSMTLIB("smtlibv2-human-readable",
+				llvm::cl::desc("Enables generated SMTLIBv2 files to be human readable (default=off)"),
+				llvm::cl::init(false)
+
+
+	);
+
 }
 
 
@@ -30,7 +37,7 @@ namespace klee
 
 	ExprSMTLIBPrinter::ExprSMTLIBPrinter() :
 		usedArrays(), o(NULL), query(NULL), p(NULL), haveConstantArray(false), logicToUse(QF_AUFBV),
-		humanReadable(true), smtlibBoolOptions(), arraysToCallGetValueOn(NULL)
+		humanReadable(humanReadableSMTLIB), smtlibBoolOptions(), arraysToCallGetValueOn(NULL)
 	{
 		setConstantDisplayMode(argConstantDisplayMode);
 	}

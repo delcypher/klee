@@ -3435,7 +3435,6 @@ void Executor::getConstraintLog(const ExecutionState &state,
 	  printer.setOutput(info);
 	  printer.setQuery(q);
 
-	  printer.setHumanReadable(true);
 	  printer.generateOutput();
 	  res = info.str();
   }

@@ -27,7 +27,7 @@
 #include "SolverStats.h"
 
 #include "llvm/Support/CommandLine.h"
-namespace SMTLIBOpts
+namespace SMTLIBSolverOpts
 {
   llvm::cl::opt<bool>
   useSMTLIBLetExpressions("smtlibv2-solver-use-lets",
@@ -142,7 +142,7 @@ namespace klee
 	SMTLIBSolver::SMTLIBSolver(std::string& pathToSolver,
 			const std::string& pathToOutputTempFile,
 			const std::string& pathToInputTempFile) :
-	SolverWithTimeOut( SMTLIBOpts::useSMTLIBPipe?
+	SolverWithTimeOut( SMTLIBSolverOpts::useSMTLIBPipe?
 						(new SMTLIBPipedSolverImpl(pathToSolver,pathToOutputTempFile,pathToInputTempFile)):
 						(new SMTLIBSolverImpl(pathToSolver,pathToOutputTempFile,pathToInputTempFile))
 					)
@@ -176,12 +176,12 @@ namespace klee
   		/* Let the command line set which printer to
   		 * use.
   		 */
-  		printer=SMTLIBOpts::useSMTLIBLetExpressions?
+  		printer=SMTLIBSolverOpts::useSMTLIBLetExpressions?
   				(new ExprSMTLIBLetPrinter()):
   				(new ExprSMTLIBPrinter());
 		//set options
 		printer->setLogic(ExprSMTLIBPrinter::QF_AUFBV);
-		printer->setHumanReadable(SMTLIBOpts::makeHumanReadableSMTLIB);
+		printer->setHumanReadable(SMTLIBSolverOpts::makeHumanReadableSMTLIB);
 
   		timeout.tv_nsec = timeout.tv_sec = 0;
 
