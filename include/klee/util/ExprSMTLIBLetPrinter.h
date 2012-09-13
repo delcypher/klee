@@ -1,3 +1,12 @@
+//===-- ExprSMTLIBLetPrinter.h ------------------------------------------*- C++ -*-===//
+//
+//                     The KLEE Symbolic Virtual Machine
+//
+// This file is distributed under the University of Illinois Open Source
+// License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
+
 #include "ExprSMTLIBPrinter.h"
 #ifndef EXPRSMTLETPRINTER_H_
 #define EXPRSMTLETPRINTER_H_
