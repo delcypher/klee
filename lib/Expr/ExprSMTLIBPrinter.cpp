@@ -827,16 +827,25 @@ namespace klee
 		queryAssert = Expr::createIsZero(query->expr);
 	}
 
-	bool ExprSMTLIBPrinter::setSMTLIBboolOption(SMTLIBboolOptions option, bool value)
+	bool ExprSMTLIBPrinter::setSMTLIBboolOption(SMTLIBboolOptions option, SMTLIBboolValues value)
 	{
 		std::pair< std::map<SMTLIBboolOptions,bool>::iterator, bool> thePair;
+		bool theValue=  (value==OPTION_TRUE)?true:false;
 
 		switch(option)
 		{
 			case PRINT_SUCCESS:
 			case PRODUCE_MODELS:
 			case INTERACTIVE_MODE:
-				thePair=smtlibBoolOptions.insert(std::pair<SMTLIBboolOptions,bool>(option,value));
+				thePair=smtlibBoolOptions.insert(std::pair<SMTLIBboolOptions,bool>(option,theValue));
+
+				if(value== OPTION_DEFAULT)
+				{
+					//we should unset (by removing from map) this option so the solver uses its default
+					smtlibBoolOptions.erase(thePair.first);
+					return true;
+				}
+
 				if(!thePair.second)
 				{
 					//option was already present so modify instead.
@@ -855,7 +864,7 @@ namespace klee
 
 		//This option must be set in order to use the SMTLIBv2 command (get-value () )
 		if(!a.empty())
-			setSMTLIBboolOption(PRODUCE_MODELS,true);
+			setSMTLIBboolOption(PRODUCE_MODELS,OPTION_TRUE);
 
 		/* There is a risk that users will ask about array values that aren't
 		 * even in the query. We should add them to the usedArrays list and hope

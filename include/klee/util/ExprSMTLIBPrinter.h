@@ -54,6 +54,15 @@ namespace klee {
 				INTERACTIVE_MODE ///< interactive-mode SMTLIBv2 option
 			};
 
+			///Different SMTLIBv2 bool option values
+			/// \sa setSMTLIBboolOption
+			enum SMTLIBboolValues
+			{
+				OPTION_TRUE, ///< Set option to true
+				OPTION_FALSE, ///< Set option to false
+				OPTION_DEFAULT ///< Use solver's defaults (the option will not be set in output)
+			};
+
 			enum ConstantDisplayMode
 			{
 				BINARY,///< Display bit vector constants in binary e.g. #b00101101
@@ -127,7 +136,7 @@ namespace klee {
 			/// its default values for all options.
 			///
 			/// \return true if option was successfully set.
-			bool setSMTLIBboolOption(SMTLIBboolOptions option, bool value);
+			bool setSMTLIBboolOption(SMTLIBboolOptions option, SMTLIBboolValues value);
 
 			/// Set the array names that the SMTLIBv2 solver will be asked to determine.
 			/// Calling this method implies the PRODUCE_MODELS option is true.
