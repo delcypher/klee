@@ -255,11 +255,14 @@ namespace klee {
 
 			volatile bool humanReadable;
 
-			//Map of enabled SMT	assert(queryAssert != NULL && "Failed to create assert expression!");LIB Options
-			std::map<const char*,bool> smtlibBoolOptions;
+			//Map of enabled SMTLIB Options
+			std::map<SMTLIBboolOptions,bool> smtlibBoolOptions;
 
 			///This sets queryAssert to be the boolean negation of the original Query
 			void mangleQuery();
+
+			//Print a SMTLIBv2 option as a C-string
+			const char* getSMTLIBOptionString(ExprSMTLIBPrinter::SMTLIBboolOptions option);
 
 			//Pointer to a vector of Arrays. These will be used for the (get-value () ) call.
 			const std::vector<const Array*> * arraysToCallGetValueOn;
