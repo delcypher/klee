@@ -21,10 +21,12 @@
 
 namespace klee {
 
-	///Base Class for SMTLIBv2 printer for Expr trees
-	///This printer does not abbreviate expressions.
+	///Base Class for SMTLIBv2 printer for Expr trees. It uses the QF_ABV logic. Note however the logic can be
+	///set to QF_AUFBV because some solvers (e.g. STP) complain if this logic is set to QF_ABV.
 	///
-	/// It is ended to be used as follows
+	///This printer does not abbreviate expressions. The printer ExprSMTLIBLetPrinter does though.
+	///
+	/// It is intended to be used as follows
 	/// -# Create instance of this class
 	/// -# Set output ( setOutput() )
 	/// -# Set query to print ( setQuery() )
@@ -32,7 +34,7 @@ namespace klee {
 	/// -# Call generateOutput()
 	///
 	/// The class can then be used again on another query ( setQuery() ).
-	/// The options set are persistent across queries (apart from setArrayValuesToGet() )
+	/// The options set are persistent across queries (apart from setArrayValuesToGet() and PRODUCE_MODELS)
 	class ExprSMTLIBPrinter
 	{
 		public:
@@ -110,11 +112,14 @@ namespace klee {
 			/// \sa setSMTLIBboolOption
 			/// \sa setArrayValuesToGet
 			///
-			/// It does not matter what order the options are set in.
+			/// Mostly it does not matter what order the options are set in. However calling
+			/// setArrayValuesToGet() implies PRODUCE_MODELS is set so, if a call to setSMTLIBboolOption()
+			/// is made that uses the PRODUCE_MODELS before calling setArrayValuesToGet() then the setSMTLIBboolOption()
+			/// call will be ineffective.
 			virtual void generateOutput();
 
 			///Set which SMTLIBv2 logic to use.
-			///This only affects what logics is used in the (set-logic <logic>) command.
+			///This only affects what logic is used in the (set-logic <logic>) command.
 			///The rest of the printed SMTLIBv2 commands are the same regardless of the logic used.
 			///
 			/// \return true if setting logic was successful.
@@ -136,10 +141,14 @@ namespace klee {
 			/// its default values for all options.
 			///
 			/// \return true if option was successfully set.
+			///
+			/// The options set are persistent across calls to setQuery() apart from the
+			/// PRODUCE_MODELS option which this printer may automatically set/unset.
 			bool setSMTLIBboolOption(SMTLIBboolOptions option, SMTLIBboolValues value);
 
 			/// Set the array names that the SMTLIBv2 solver will be asked to determine.
-			/// Calling this method implies the PRODUCE_MODELS option is true.
+			/// Calling this method implies the PRODUCE_MODELS option is true and will change
+			/// any previously set value.
 			///
 			/// If no call is made to this function before ExprSMTLIBPrinter::generateOutput() then
 			/// the solver will only be asked to check satisfiability.

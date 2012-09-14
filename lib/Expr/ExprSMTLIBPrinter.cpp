@@ -76,7 +76,17 @@ namespace klee
 	{
 		usedArrays.clear();
 		haveConstantArray=false;
+
+		/* Clear the PRODUCE_MODELS option if it was automatically set.
+		 * We need to do this because the next query might not need the
+		 * (get-value) SMT-LIBv2 command.
+		 */
+		if(arraysToCallGetValueOn !=NULL)
+			setSMTLIBboolOption(PRODUCE_MODELS,OPTION_DEFAULT);
+
 		arraysToCallGetValueOn=NULL;
+
+
 	}
 
 	bool ExprSMTLIBPrinter::isHumanReadable()

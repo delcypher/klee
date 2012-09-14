@@ -13,6 +13,11 @@
 
 namespace klee
 {
+	/// This printer behaves like ExprSMTLIBPrinter except that it will abbreviate expressions
+	/// using the (let) SMT-LIBv2 command. Expression trees that appear two or more times in the Query
+	/// passed to setQuery() will be abbreviated.
+	///
+	/// This class should be used just like ExprSMTLIBPrinter.
 	class ExprSMTLIBLetPrinter : public ExprSMTLIBPrinter
 	{
 		public:
@@ -27,7 +32,7 @@ namespace klee
 			void printLetExpression();
 
 		private:
-			//Let expression binding number
+			///Let expression binding number map.
 			std::map<const ref<Expr>,unsigned int> bindings;
 
 			/* These are effectively expression counters.
@@ -45,6 +50,7 @@ namespace klee
 			 */
 			std::set<ref<Expr> > firstEO, twoOrMoreEO;
 
+			///This is the prefix string used for all abbreviations in (let) expressions.
 			static const char BINDING_PREFIX[];
 
 			/* This is needed during un-abbreviated printing.
