@@ -92,6 +92,17 @@ namespace {
   UseDummySolver("use-dummy-solver",
 		   cl::init(false));
 
+  llvm::cl::opt<std::string> directoryToWriteQueryLogs("query-log-dir",llvm::cl::desc("The folder to write query logs to. Defaults is current working directory."),
+		                                               llvm::cl::init(get_current_dir_name()));
+
+}
+
+static std::string getQueryLogPath(const char filename[])
+{
+	std::string path=directoryToWriteQueryLogs;
+	path+="/";
+	path+=filename;
+	return path;
 }
 
 static std::string escapedString(const char *start, unsigned length) {
@@ -191,18 +202,13 @@ static bool EvaluateInputAST(const char *Filename,
   else {
     STP = S = createDummySolver(); 
   }
-  if (true == optionIsSet(queryLoggingOptions, SOLVER_PC))
-    S = createPCLoggingSolver(S, SOLVER_QUERIES_PC_FILE_NAME, MinQueryTimeToLog);
-  if (UseFastCexSolver)
-    S = createFastCexSolver(S);  
-  if (UseCexCache)
-    S = createCexCachingSolver(S);
-  if (UseCache)
-    S = createCachingSolver(S);
-  if (UseIndependentSolver)
-    S = createIndependentSolver(S);
-  if (0)
-    S = createValidatingSolver(S, STP);
+
+  S= constructSolverChain((STPSolver*) STP,
+		  	  	  	      getQueryLogPath(ALL_QUERIES_SMT2_FILE_NAME),
+		  	  	  	      getQueryLogPath(SOLVER_QUERIES_SMT2_FILE_NAME),
+		  	  	  	      getQueryLogPath(ALL_QUERIES_PC_FILE_NAME),
+		  	  	  	      getQueryLogPath(SOLVER_QUERIES_PC_FILE_NAME));
+
 
   unsigned Index = 0;
   for (std::vector<Decl*>::iterator it = Decls.begin(),
