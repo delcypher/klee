@@ -15,12 +15,10 @@
 #define KLEE_COMMON_H
 
 namespace klee {
-
-#define ALL_QUERIES_SMT2_FILE_NAME      "all-queries.smt2"
-#define SOLVER_QUERIES_SMT2_FILE_NAME   "solver-queries.smt2"
-#define ALL_QUERIES_PC_FILE_NAME        "all-queries.pc"
-#define SOLVER_QUERIES_PC_FILE_NAME     "solver-queries.pc"
-
+    const char ALL_QUERIES_SMT2_FILE_NAME[]="all-queries.smt2";
+    const char SOLVER_QUERIES_SMT2_FILE_NAME[]="solver-queries.smt2";
+    const char ALL_QUERIES_PC_FILE_NAME[]="all-queries.pc";
+    const char SOLVER_QUERIES_PC_FILE_NAME[]="solver-queries.pc";
 }
 
 #endif /* KLEE_COMMON_H */
