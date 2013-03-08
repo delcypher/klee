@@ -24,6 +24,9 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <sys/stat.h>
+#include <unistd.h>
+
 // FIXME: Ugh, this is gross. But otherwise our config.h conflicts with LLVMs.
 #undef PACKAGE_BUGREPORT
 #undef PACKAGE_NAME
@@ -99,6 +102,24 @@ namespace {
 
 static std::string getQueryLogPath(const char filename[])
 {
+	//check directoryToWriteLogs exists
+	struct stat s;
+	if( !(stat(directoryToWriteQueryLogs.c_str(),&s) == 0 && S_ISDIR(s.st_mode)) )
+	{
+		std::cerr << "Directory to log queries \"" << directoryToWriteQueryLogs << "\" does not exist!" << std::endl;
+		exit(1);
+	}
+
+	//check permissions okay
+	if( !( (s.st_mode & S_IWUSR) && getuid() == s.st_uid) &&
+	    !( (s.st_mode & S_IWGRP) && getgid() == s.st_gid) &&
+	    !( s.st_mode & S_IWOTH)
+	)
+	{
+		std::cerr << "Directory to log queries \"" << directoryToWriteQueryLogs << "\" is not writable!" << std::endl;
+		exit(1);
+	}
+
 	std::string path=directoryToWriteQueryLogs;
 	path+="/";
 	path+=filename;
