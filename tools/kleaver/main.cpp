@@ -96,7 +96,7 @@ namespace {
 		   cl::init(false));
 
   llvm::cl::opt<std::string> directoryToWriteQueryLogs("query-log-dir",llvm::cl::desc("The folder to write query logs to. Defaults is current working directory."),
-		                                               llvm::cl::init(get_current_dir_name()));
+		                                               llvm::cl::init("."));
 
 }
 
