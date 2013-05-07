@@ -581,6 +581,20 @@ static void readArgumentsFromFile(char *file, std::vector<std::string> &results)
   f.close();
 }
 
+void tweakHelpOutput()
+{
+#ifdef KLEE_LLVM_CL3_3_BP
+
+  StringMap<llvm::cl::Option*> map;
+  llvm::cl::getRegisteredOptions(map);
+
+  //Hide enable-no-infs-fp-math
+  assert(map.count("enable-no-infs-fp-math") > 0);
+  map["enable-no-infs-fp-math"]->setHiddenFlag(cl::Hidden);
+
+#endif
+}
+
 static void parseArguments(int argc, char **argv) {
   std::vector<std::string> arguments;
 
@@ -600,6 +614,7 @@ static void parseArguments(int argc, char **argv) {
     argArray[i] = arguments[i-1].c_str();
   }
 
+  tweakHelpOutput();
   cl::ParseCommandLineOptions(numArgs, (char**) argArray, " klee\n");
   delete[] argArray;
 }
@@ -1091,6 +1106,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule) {
   return mainModule;
 }
 #endif
+
 
 int main(int argc, char **argv, char **envp) {  
 #if ENABLE_STPLOG == 1
