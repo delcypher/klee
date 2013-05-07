@@ -7,29 +7,38 @@
 
 namespace klee {
 
+#ifdef KLEE_LLVM_CL3_3_BP
+llvm::cl::OptionCategory SolverOptionCategory("Solver Options",
+  "These options control the behaviour of KLEE's underlying solver.");
+#endif
+
 llvm::cl::opt<bool>
 UseFastCexSolver("use-fast-cex-solver",
 		 llvm::cl::init(false),
-		 llvm::cl::desc("(default=off)"));
+		 llvm::cl::desc("(default=off)") KLEE_CL_CAT(SolverOptionCategory));
 
 llvm::cl::opt<bool>
 UseCexCache("use-cex-cache",
             llvm::cl::init(true),
-            llvm::cl::desc("Use counterexample caching (default=on)"));
+            llvm::cl::desc("Use counterexample caching (default=on)") 
+	    KLEE_CL_CAT(SolverOptionCategory));
 
 llvm::cl::opt<bool>
 UseCache("use-cache",
          llvm::cl::init(true),
-         llvm::cl::desc("Use validity caching (default=on)"));
+         llvm::cl::desc("Use validity caching (default=on)")
+	 KLEE_CL_CAT(SolverOptionCategory));
 
 llvm::cl::opt<bool>
 UseIndependentSolver("use-independent-solver",
                      llvm::cl::init(true),
-                     llvm::cl::desc("Use constraint independence (default=on)"));
+                     llvm::cl::desc("Use constraint independence (default=on)")
+		     KLEE_CL_CAT(SolverOptionCategory));
 
 llvm::cl::opt<bool>
 DebugValidateSolver("debug-validate-solver",
-		             llvm::cl::init(false));
+		             llvm::cl::init(false)
+			     KLEE_CL_CAT(SolverOptionCategory));
   
 llvm::cl::opt<int>
 MinQueryTimeToLog("min-query-time-to-log",
@@ -37,12 +46,14 @@ MinQueryTimeToLog("min-query-time-to-log",
                   llvm::cl::value_desc("milliseconds"),
                   llvm::cl::desc("Set time threshold (in ms) for queries logged in files. "
                                  "Only queries longer than threshold will be logged. (default=0). "
-                                 "Set this param to a negative value to log timeouts only."));
+                                 "Set this param to a negative value to log timeouts only.")
+		  KLEE_CL_CAT(SolverOptionCategory));
 
 llvm::cl::opt<double>
 MaxSTPTime("max-stp-time",
            llvm::cl::desc("Maximum amount of time for a single query (default=0s (off)). Enables --use-forked-stp"),
-           llvm::cl::init(0.0));
+           llvm::cl::init(0.0)
+	   KLEE_CL_CAT(SolverOptionCategory));
 
 
 /* Using cl::list<> instead of cl::bits<> results in quite a bit of ugliness when it comes to checking
@@ -60,6 +71,7 @@ llvm::cl::list<QueryLoggingSolverType> queryLoggingOptions(
         clEnumValEnd
 	),
     llvm::cl::CommaSeparated
+    KLEE_CL_CAT(SolverOptionCategory)
 );
 
 }

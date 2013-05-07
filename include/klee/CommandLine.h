@@ -21,6 +21,10 @@
 
 namespace klee {
 
+#ifdef KLEE_LLVM_CL3_3_BP
+extern llvm::cl::OptionCategory SolverOptionCategory;
+#endif
+
 extern llvm::cl::opt<bool> UseFastCexSolver;
 
 extern llvm::cl::opt<bool> UseCexCache;
