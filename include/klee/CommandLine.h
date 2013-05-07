@@ -8,6 +8,17 @@
 
 #include "llvm/Support/CommandLine.h"
 
+// Convenience macro to set llvm::cl::cat on options. User's may/may not have
+// KLEE's Command line patches so this macro provides a succinct way of using
+// them that won't break compilation for users without the patches.  It must be
+// used as cl::opt<int> a("thing" KLEE_CL_CAT(category)) . I.e. without a comma
+// between the second to last command line argument and KLEE_CL_CAT
+#ifdef KLEE_LLVM_CL3_3_BP
+#define KLEE_CL_CAT(X) ,llvm::cl::cat(X) /*Set option category*/
+#else
+#define KLEE_CL_CAT(X) /*Expand to nothing*/
+#endif
+
 namespace klee {
 
 extern llvm::cl::opt<bool> UseFastCexSolver;
