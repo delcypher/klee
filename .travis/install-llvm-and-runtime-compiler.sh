@@ -20,7 +20,7 @@ else
     cd "$OLD_DIR"
 
     # Check it can compile hello world
-    cat "#include <stdio.h> int main(int argc, char** argv) { printf(\"Hello World\"); return 0;}" >> test.c
+    echo "#include <stdio.h> int main(int argc, char** argv) { printf(\"Hello World\"); return 0;}" > test.c
     llvm-gcc/bin/llvm-gcc test.c -o hello_world
     ./hello_world
 fi
