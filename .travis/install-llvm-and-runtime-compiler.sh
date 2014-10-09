@@ -21,6 +21,8 @@ else
 
     # Check it can compile hello world
     echo "#include <stdio.h> int main(int argc, char** argv) { printf(\"Hello World\"); return 0;}" > test.c
+    export C_INCLUDE_PATH=/usr/include/x86_64-linux-gnu
+    export CPLUS_INCLUDE_PATH=/usr/include/x86_64-linux-gnu
     llvm-gcc/bin/llvm-gcc test.c -o hello_world
     ./hello_world
 fi
