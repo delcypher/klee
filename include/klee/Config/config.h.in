@@ -6,14 +6,17 @@
 /* Enable KLEE DEBUG checks */
 #undef ENABLE_KLEE_DEBUG
 
+/* Using STP Solver backend */
+#undef ENABLE_STP
+
+/* Using Z3 Solver backend */
+#undef ENABLE_Z3
+
 /* Does the platform use __ctype_b_loc, etc. */
 #undef HAVE_CTYPE_EXTERNALS
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
-
-/* Define to 1 if you have the `stp' library (-lstp). */
-#undef HAVE_LIBSTP
 
 /* Define if mallinfo() is available on this platform. */
 #undef HAVE_MALLINFO
