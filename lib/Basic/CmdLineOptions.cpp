@@ -75,18 +75,44 @@ llvm::cl::list<QueryLoggingSolverType> queryLoggingOptions(
 
 #ifdef SUPPORT_METASMT
 
-llvm::cl::opt<klee::MetaSMTBackendType>
-UseMetaSMT("use-metasmt",
-           llvm::cl::desc("Use MetaSMT as an underlying SMT solver and specify the solver backend type."),
-           llvm::cl::values(clEnumValN(METASMT_BACKEND_NONE, "none", "Don't use metaSMT"),
-                      clEnumValN(METASMT_BACKEND_STP, "stp", "Use metaSMT with STP"),
-                      clEnumValN(METASMT_BACKEND_Z3, "z3", "Use metaSMT with Z3"),
-                      clEnumValN(METASMT_BACKEND_BOOLECTOR, "btor", "Use metaSMT with Boolector"),
-                      clEnumValEnd),  
-           llvm::cl::init(METASMT_BACKEND_NONE));
+llvm::cl::opt<klee::MetaSMTBackendType> MetaSMTBackend(
+    "metasmt-backend",
+    llvm::cl::desc("Specify the MetaSMT solver backend type."),
+    llvm::cl::values(
+        clEnumValN(METASMT_BACKEND_STP, "stp", "Use metaSMT with STP"),
+        clEnumValN(METASMT_BACKEND_Z3, "z3", "Use metaSMT with Z3"),
+        clEnumValN(METASMT_BACKEND_BOOLECTOR, "btor",
+                   "Use metaSMT with Boolector"),
+        clEnumValEnd),
+    llvm::cl::init(METASMT_BACKEND_STP));
 
 #endif /* SUPPORT_METASMT */
 
+#if defined(ENABLE_STP)
+#define STP_DEFAULT_STR " (default)"
+#define Z3_DEFAULT_STR ""
+#elif defined(ENABLE_Z3)
+#define STP_DEFAULT_STR ""
+#define Z3_DEFAULT_STR " (default)"
+#endif
+llvm::cl::opt<CoreSolverType> CoreSolverToUse(
+    "solver-backend", llvm::cl::desc("Specifiy the core solver backend to use"),
+    llvm::cl::values(clEnumValN(STP_SOLVER, "stp", "stp" STP_DEFAULT_STR),
+                     clEnumValN(Z3_SOLVER, "z3", "z3" Z3_DEFAULT_STR),
+                     clEnumValN(METASMT_SOLVER, "metasmt", "METASMT"),
+                     clEnumValN(DUMMY_SOLVER, "dummy", "Dummy solver"),
+                     clEnumValEnd),
+#if defined(ENABLE_STP)
+    llvm::cl::init(STP_SOLVER)
+#elif defined(ENABLE_Z3)
+    llvm::cl::init(Z3_SOLVER)
+#else
+#error "Default solver not available"
+#endif
+
+#undef STP_DEFAULT_STR
+#undef Z3_DEFAULT_STR
+        );
 }
 
 
