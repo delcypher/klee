@@ -199,6 +199,7 @@ namespace klee {
     virtual void setCoreSolverTimeout(double timeout);
   };
 
+#ifdef ENABLE_STP
   /// STPSolver - A complete solver based on STP.
   class STPSolver : public Solver {
   public:
@@ -212,14 +213,33 @@ namespace klee {
 
     /// getConstraintLog - Return the constraint log for the given state in CVC
     /// format.
-    virtual char *getConstraintLog(const Query&);
+    virtual char *getConstraintLog(const Query &);
 
-    /// setCoreSolverTimeout - Set constraint solver timeout delay to the given value; 0
+    /// setCoreSolverTimeout - Set constraint solver timeout delay to the given
+    /// value; 0
     /// is off.
     virtual void setCoreSolverTimeout(double timeout);
   };
+#endif /* ENABLE_STP */
 
-  
+#ifdef ENABLE_Z3
+  /// Z3Solver - A solver complete solver based on Z3
+  class Z3Solver : public Solver {
+  public:
+    /// Z3Solver - Construct a new Z3Solver.
+    Z3Solver();
+
+    /// getConstraintLog - Return the constraint log for the given state in CVC
+    /// format.
+    virtual char *getConstraintLog(const Query &);
+
+    /// setCoreSolverTimeout - Set constraint solver timeout delay to the given
+    /// value; 0
+    /// is off.
+    virtual void setCoreSolverTimeout(double timeout);
+  };
+#endif /* ENABLE_Z3 */
+
 #ifdef SUPPORT_METASMT
   
   template<typename SolverContext>

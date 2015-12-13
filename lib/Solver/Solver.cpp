@@ -11,7 +11,12 @@
 #include "klee/SolverImpl.h"
 
 #include "SolverStats.h"
+#ifdef ENABLE_STP
 #include "STPBuilder.h"
+#endif
+#ifdef ENABLE_Z3
+#include "Z3Builder.h"
+#endif
 #include "MetaSMTBuilder.h"
 
 #include "klee/Constraints.h"
@@ -491,8 +496,21 @@ Solver *klee::createDummySolver() {
   return new Solver(new DummySolverImpl());
 }
 
-/***/
+static unsigned char *shared_memory_ptr;
+static int shared_memory_id = 0;
+// Darwin by default has a very small limit on the maximum amount of shared
+// memory, which will quickly be exhausted by KLEE running its tests in
+// parallel. For now, we work around this by just requesting a smaller size --
+// in practice users hitting this limit on counterexample sizes probably already
+// are hitting more serious scalability issues.
+#ifdef __APPLE__
+static const unsigned shared_memory_size = 1<<16;
+#else
+static const unsigned shared_memory_size = 1<<20;
+#endif
 
+/***/
+#ifdef ENABLE_STP
 class STPSolverImpl : public SolverImpl {
 private:
   VC vc;
@@ -516,19 +534,6 @@ public:
                             bool &hasSolution);
   SolverRunStatus getOperationStatusCode();
 };
-
-static unsigned char *shared_memory_ptr;
-static int shared_memory_id = 0;
-// Darwin by default has a very small limit on the maximum amount of shared
-// memory, which will quickly be exhausted by KLEE running its tests in
-// parallel. For now, we work around this by just requesting a smaller size --
-// in practice users hitting this limit on counterexample sizes probably already
-// are hitting more serious scalability issues.
-#ifdef __APPLE__
-static const unsigned shared_memory_size = 1<<16;
-#else
-static const unsigned shared_memory_size = 1<<20;
-#endif
 
 static void stp_error_handler(const char* err_msg) {
   fprintf(stderr, "error: STP Error: %s\n", err_msg);
@@ -845,6 +850,217 @@ STPSolverImpl::computeInitialValues(const Query &query,
 SolverImpl::SolverRunStatus STPSolverImpl::getOperationStatusCode() {
    return runStatusCode;
 }
+#endif /* ENABLE_STP */
+
+/***/
+
+#ifdef ENABLE_Z3
+class Z3SolverImpl : public SolverImpl {
+private:
+  Z3Builder *builder;
+  double timeout;
+  SolverRunStatus runStatusCode;
+
+public:
+  Z3SolverImpl();
+  ~Z3SolverImpl();
+
+  char *getConstraintLog(const Query &);
+  void setCoreSolverTimeout(double _timeout) {
+    timeout = _timeout;
+
+    unsigned timeout_buffer_size = 100;
+    char *timeout_amount = new char[timeout_buffer_size];
+
+    int ret = snprintf(timeout_amount, timeout_buffer_size, "%lu",
+                       (timeout > 0 ? ((uint64_t)(timeout * 1000)) : UINT_MAX));
+    assert(ret >= 0 && "invalid timeout value specification");
+
+    Z3_global_param_set("timeout", timeout_amount);
+  }
+
+  bool computeTruth(const Query &, bool &isValid);
+  bool computeValue(const Query &, ref<Expr> &result);
+  bool computeInitialValues(const Query &,
+                            const std::vector<const Array *> &objects,
+                            std::vector<std::vector<unsigned char> > &values,
+                            bool &hasSolution);
+  SolverRunStatus runAndGetCex(Z3Builder *builder, Z3_solver the_solver,
+                               Z3_ast q,
+                               const std::vector<const Array *> &objects,
+                               std::vector<std::vector<unsigned char> > &values,
+                               bool &hasSolution);
+  SolverRunStatus getOperationStatusCode();
+};
+
+Z3SolverImpl::Z3SolverImpl()
+    : builder(new Z3Builder()), timeout(0.0),
+      runStatusCode(SOLVER_RUN_STATUS_FAILURE) {
+  assert(builder && "unable to create Z3Builder");
+}
+
+Z3SolverImpl::~Z3SolverImpl() {
+  // Detach the memory region.
+  shmdt(shared_memory_ptr);
+  shared_memory_ptr = 0;
+  shared_memory_id = 0;
+
+  delete builder;
+}
+
+/***/
+
+Z3Solver::Z3Solver() : Solver(new Z3SolverImpl()) {}
+
+char *Z3Solver::getConstraintLog(const Query &query) {
+  return impl->getConstraintLog(query);
+}
+
+void Z3Solver::setCoreSolverTimeout(double timeout) {
+  impl->setCoreSolverTimeout(timeout);
+}
+
+/***/
+
+char *Z3SolverImpl::getConstraintLog(const Query &query) {
+  Z3_solver the_solver = Z3_mk_simple_solver(builder->ctx);
+  Z3_solver_inc_ref(builder->ctx, the_solver);
+
+  Z3_params params = Z3_mk_params(builder->ctx);
+  Z3_params_inc_ref(builder->ctx, params);
+  Z3_symbol r = Z3_mk_string_symbol(builder->ctx, ":timeout");
+  Z3_params_set_uint(builder->ctx, params, r,
+                     (timeout > 0 ? (uint64_t)(timeout * 1000) : UINT_MAX));
+  Z3_solver_set_params(builder->ctx, the_solver, params);
+  Z3_params_dec_ref(builder->ctx, params);
+
+  for (std::vector<ref<Expr> >::const_iterator it = query.constraints.begin(),
+                                              ie = query.constraints.end();
+       it != ie; ++it) {
+    Z3_solver_assert(builder->ctx, the_solver, builder->construct(*it));
+  }
+
+  return strdup(Z3_solver_to_string(builder->ctx, the_solver));
+}
+
+bool Z3SolverImpl::computeTruth(const Query &query, bool &isValid) {
+  std::vector<const Array *> objects;
+  std::vector<std::vector<unsigned char> > values;
+  bool hasSolution;
+
+  if (!computeInitialValues(query, objects, values, hasSolution))
+    return false;
+
+  isValid = !hasSolution;
+  return true;
+}
+
+bool Z3SolverImpl::computeValue(const Query &query, ref<Expr> &result) {
+  std::vector<const Array *> objects;
+  std::vector<std::vector<unsigned char> > values;
+  bool hasSolution;
+
+  // Find the object used in the expression, and compute an assignment
+  // for them.
+  findSymbolicObjects(query.expr, objects);
+  if (!computeInitialValues(query.withFalse(), objects, values, hasSolution))
+    return false;
+  assert(hasSolution && "state has invalid constraint set");
+
+  // Evaluate the expression with the computed assignment.
+  Assignment a(objects, values);
+  result = a.evaluate(query.expr);
+
+  return true;
+}
+
+bool Z3SolverImpl::computeInitialValues(
+    const Query &query, const std::vector<const Array *> &objects,
+    std::vector<std::vector<unsigned char> > &values, bool &hasSolution) {
+
+  Z3_solver the_solver = Z3_mk_simple_solver(builder->ctx);
+  Z3_solver_inc_ref(builder->ctx, the_solver);
+
+  Z3_params params = Z3_mk_params(builder->ctx);
+  Z3_params_inc_ref(builder->ctx, params);
+  Z3_symbol r = Z3_mk_string_symbol(builder->ctx, ":timeout");
+  Z3_params_set_uint(builder->ctx, params, r,
+                     (timeout > 0 ? (uint64_t)(timeout * 1000) : UINT_MAX));
+  Z3_solver_set_params(builder->ctx, the_solver, params);
+  Z3_params_dec_ref(builder->ctx, params);
+
+  runStatusCode = SOLVER_RUN_STATUS_FAILURE;
+
+  TimerStatIncrementer t(stats::queryTime);
+
+  for (ConstraintManager::const_iterator it = query.constraints.begin(),
+                                         ie = query.constraints.end();
+       it != ie; ++it) {
+    Z3_solver_assert(builder->ctx, the_solver, builder->construct(*it));
+  }
+  ++stats::queries;
+  ++stats::queryCounterexamples;
+
+  Z3_ast stp_e = builder->construct(query.expr);
+
+  bool success;
+  runStatusCode =
+      runAndGetCex(builder, the_solver, stp_e, objects, values, hasSolution);
+  success = true;
+
+  if (success) {
+    if (hasSolution)
+      ++stats::queriesInvalid;
+    else
+      ++stats::queriesValid;
+  }
+  return success;
+}
+
+SolverImpl::SolverRunStatus
+Z3SolverImpl::runAndGetCex(Z3Builder *builder, Z3_solver the_solver, Z3_ast q,
+                           const std::vector<const Array *> &objects,
+                           std::vector<std::vector<unsigned char> > &values,
+                           bool &hasSolution) {
+  Z3_solver_assert(builder->ctx, the_solver, Z3_mk_not(builder->ctx, q));
+
+  if (Z3_solver_check(builder->ctx, the_solver) == Z3_L_TRUE) {
+    hasSolution = true;
+    Z3_model m = Z3_solver_get_model(builder->ctx, the_solver);
+
+    values.reserve(objects.size());
+    for (std::vector<const Array *>::const_iterator it = objects.begin(),
+                                                    ie = objects.end();
+         it != ie; ++it) {
+      const Array *array = *it;
+      std::vector<unsigned char> data;
+
+      data.reserve(array->size);
+      for (unsigned offset = 0; offset < array->size; offset++) {
+        Z3_ast counter;
+        Z3_ast initial_read = Z3_mk_bv2int(
+            builder->ctx, builder->getInitialRead(array, offset), 0);
+        Z3_model_eval(builder->ctx, m, initial_read, Z3_TRUE, &counter);
+        int val = 0;
+        Z3_get_numeral_int(builder->ctx, counter, &val);
+        data.push_back(val);
+      }
+
+      values.push_back(data);
+    }
+
+    return SolverImpl::SOLVER_RUN_STATUS_SUCCESS_SOLVABLE;
+  }
+
+  return SolverImpl::SOLVER_RUN_STATUS_SUCCESS_UNSOLVABLE;
+}
+
+SolverImpl::SolverRunStatus Z3SolverImpl::getOperationStatusCode() {
+  return runStatusCode;
+}
+#endif /* ENABLE_Z3 */
+
+/***/
 
 #ifdef SUPPORT_METASMT
 
@@ -892,7 +1108,6 @@ public:
   SolverContext& get_meta_solver() { return(_meta_solver); };
   
 };
-
 
 // ------------------------------------- MetaSMTSolver methods --------------------------------------------
 
