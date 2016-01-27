@@ -20,6 +20,67 @@
 
 namespace klee {
 
+template <typename T> class Z3NodeHandle {
+  // Internally these Z3 types are pointers
+  // so storing these should be cheap.
+  // It would be nice if we could infer the Z3_context from the node
+  // but I can't see a way to do this from Z3's API.
+protected:
+  T node;
+  ::Z3_context context;
+
+private:
+  // To be specialised
+  inline ::Z3_ast as_ast();
+
+public:
+  Z3NodeHandle() : node(NULL), context(NULL) {}
+  Z3NodeHandle(const T _node, const ::Z3_context _context)
+      : node(_node), context(_context){};
+  ~Z3NodeHandle() {
+    if (node && context) {
+      ::Z3_dec_ref(context, as_ast());
+    }
+  }
+  Z3NodeHandle(const Z3NodeHandle &b) : node(b.node), context(b.context) {
+    if (node && context) {
+      ::Z3_inc_ref(context, as_ast());
+    }
+  }
+  Z3NodeHandle &operator=(const Z3NodeHandle &b) {
+    if (node == NULL && context == NULL) {
+      // Special case for when this object was constructed
+      // using the default constructor. Try to inherit a non null
+      // context.
+      context = b.context;
+    }
+    assert(context == b.context && "Mismatched Z3 contexts!");
+
+    if (node && context) {
+      ::Z3_dec_ref(context, as_ast());
+    }
+    node = b.node;
+    if (node && context) {
+      ::Z3_inc_ref(context, as_ast());
+    }
+    return *this;
+  }
+
+  operator T() { return node; }
+};
+
+// Specialise for Z3_sort
+template <> inline ::Z3_ast Z3NodeHandle<Z3_sort>::as_ast() {
+  // In Z3 internally this call is just a cast. We could just do that
+  // instead to simplify our implementation but this seems cleaner.
+  return ::Z3_sort_to_ast(context, node);
+}
+typedef Z3NodeHandle<Z3_sort> Z3SortHandle;
+
+// Specialise for Z3_ast
+template <> inline ::Z3_ast Z3NodeHandle<Z3_ast>::as_ast() { return node; }
+typedef Z3NodeHandle<Z3_ast> Z3ASTHandle;
+
 class Z3ArrayExprHash : public ArrayExprHash<Z3_ast> {
 
   friend class Z3Builder;
