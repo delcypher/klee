@@ -55,6 +55,8 @@ public:
       context = b.context;
     }
     assert(context == b.context && "Mismatched Z3 contexts!");
+    // node != nullptr ==> context != NULL
+    assert((node == NULL || context) && "Can't have non nullptr node with nullptr context");
 
     if (node && context) {
       ::Z3_dec_ref(context, as_ast());
