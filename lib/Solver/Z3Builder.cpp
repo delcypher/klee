@@ -87,11 +87,13 @@ Z3_ast Z3Builder::buildArray(const char *name, unsigned indexWidth,
   return Z3_mk_const(ctx, s, t);
 }
 
+// FIXME: The return type here look wrong!
 /**
  * Make 1-bit bitvector whose only element is 1.
  */
 Z3_ast Z3Builder::getTrue() { return Z3_mk_true(ctx); }
 
+// FIXME: The return type here look wrong!
 /**
  * Make 1-bit bitvector whose only element is 0.
  */
