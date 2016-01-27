@@ -165,7 +165,6 @@ private:
   Z3_ast constructActual(ref<Expr> e, int *width_out);
   Z3_ast construct(ref<Expr> e, int *width_out);
 
-  Z3_ast buildVar(const char *name, unsigned width);
   Z3_ast buildArray(const char *name, unsigned indexWidth, unsigned valueWidth);
 
 public:

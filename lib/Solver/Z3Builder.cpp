@@ -70,13 +70,6 @@ Z3Builder::~Z3Builder() { Z3_del_context(ctx); }
    them look like they cons memory but in fact don't, which is bad when
    you call vc_DeleteExpr on them. */
 
-Z3_ast Z3Builder::buildVar(const char *name, unsigned width) {
-  // XXX don't rebuild if this stuff cons's
-  Z3_sort t = (width == 1) ? Z3_mk_bool_sort(ctx) : Z3_mk_bv_sort(ctx, width);
-  Z3_symbol s = Z3_mk_string_symbol(ctx, const_cast<char *>(name));
-  return Z3_mk_const(ctx, s, t);
-}
-
 Z3_ast Z3Builder::buildArray(const char *name, unsigned indexWidth,
                              unsigned valueWidth) {
   // XXX don't rebuild if this stuff cons's
