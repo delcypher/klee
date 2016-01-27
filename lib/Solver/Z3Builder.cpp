@@ -60,11 +60,6 @@ Z3Builder::Z3Builder() {
   Z3_config cfg = Z3_mk_config();
   ctx = Z3_mk_context(cfg);
   Z3_del_config(cfg);
-
-  tempVars[0] = buildVar("__tmpInt8", 8);
-  tempVars[1] = buildVar("__tmpInt16", 16);
-  tempVars[2] = buildVar("__tmpInt32", 32);
-  tempVars[3] = buildVar("__tmpInt64", 64);
 }
 
 Z3Builder::~Z3Builder() { Z3_del_context(ctx); }
@@ -90,21 +85,6 @@ Z3_ast Z3Builder::buildArray(const char *name, unsigned indexWidth,
   Z3_sort t = Z3_mk_array_sort(ctx, t1, t2);
   Z3_symbol s = Z3_mk_string_symbol(ctx, const_cast<char *>(name));
   return Z3_mk_const(ctx, s, t);
-}
-
-Z3_ast Z3Builder::getTempVar(Expr::Width w) {
-  switch (w) {
-  default:
-    assert(0 && "invalid type");
-  case Expr::Int8:
-    return tempVars[0];
-  case Expr::Int16:
-    return tempVars[1];
-  case Expr::Int32:
-    return tempVars[2];
-  case Expr::Int64:
-    return tempVars[3];
-  }
 }
 
 /**

@@ -30,7 +30,6 @@ public:
 };
 
 class Z3Builder {
-  Z3_ast tempVars[4];
   ExprHashMap<std::pair<Z3_ast, unsigned> > constructed;
 
   /// optimizeDivides - Rewrite division and reminders by constants
@@ -116,7 +115,6 @@ public:
 
   Z3_ast getTrue();
   Z3_ast getFalse();
-  Z3_ast getTempVar(Expr::Width w);
   Z3_ast getInitialRead(const Array *os, unsigned index);
 
   Z3_ast construct(ref<Expr> e) {
