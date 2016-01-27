@@ -119,6 +119,10 @@ public:
 
   Z3_ast construct(ref<Expr> e) {
     Z3_ast res = construct(e, 0);
+    // FIXME: This is preventing reuse of constructed Z3 expressions
+    // between calls. Presumably the motivation is to prevent the cache
+    // size from exploding but we could get better Z3 ast reuse if we let the client
+    // decide when to clear the cache.
     constructed.clear();
     return res;
   }
