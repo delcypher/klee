@@ -36,6 +36,11 @@ llvm::cl::opt<bool> UseConstructHashZ3(
     llvm::cl::init(true));
 }
 
+void custom_z3_error_handler(Z3_context ctx, Z3_error_code ec) {
+  llvm::errs() << "Error: Incorrect use of Z3. [" << ec << "]" <<
+               ::Z3_get_error_msg(ctx, ec) << "\n";
+  abort();
+}
 
 Z3ArrayExprHash::~Z3ArrayExprHash() {}
 
@@ -45,6 +50,8 @@ Z3Builder::Z3Builder() {
   // It is very important that we ask Z3 to let us manage memory so that
   // we are able to cache expressions and sorts.
   ctx = Z3_mk_context_rc(cfg);
+  // Make sure we handle any errors reported Z3.
+  Z3_set_error_handler(ctx, custom_z3_error_handler);
   Z3_del_config(cfg);
 }
 
