@@ -154,19 +154,15 @@ bool Z3SolverImpl::computeInitialValues(
 
   Z3ASTHandle stp_e = Z3ASTHandle(builder->construct(query.expr), builder->ctx);
 
-  bool success;
   runStatusCode =
       runAndGetCex(builder, the_solver, stp_e, objects, values, hasSolution);
-  success = true;
 
-  if (success) {
-    if (hasSolution)
-      ++stats::queriesInvalid;
-    else
-      ++stats::queriesValid;
-  }
+  if (hasSolution)
+    ++stats::queriesInvalid;
+  else
+    ++stats::queriesValid;
   Z3_solver_dec_ref(builder->ctx, the_solver);
-  return success;
+  return true; // FIXME: this is wrong!
 }
 
 SolverImpl::SolverRunStatus
@@ -177,43 +173,46 @@ Z3SolverImpl::runAndGetCex(Z3Builder *builder, Z3_solver the_solver, Z3ASTHandle
   Z3_solver_assert(builder->ctx, the_solver,
                    Z3ASTHandle(Z3_mk_not(builder->ctx, q), builder->ctx));
 
-  if (Z3_solver_check(builder->ctx, the_solver) == Z3_L_TRUE) {
-    hasSolution = true;
-    Z3_model m = Z3_solver_get_model(builder->ctx, the_solver);
-    if (m) Z3_model_inc_ref(builder->ctx, m);
+  Z3_lbool solverResult = Z3_solver_check(builder->ctx, the_solver);
+  switch (solverResult) {
+    case Z3_L_TRUE: {
+      hasSolution = true;
+      Z3_model m = Z3_solver_get_model(builder->ctx, the_solver);
+      if (m) Z3_model_inc_ref(builder->ctx, m);
+      values.reserve(objects.size());
+      for (std::vector<const Array *>::const_iterator it = objects.begin(),
+                                                      ie = objects.end();
+           it != ie; ++it) {
+        const Array *array = *it;
+        std::vector<unsigned char> data;
 
-    values.reserve(objects.size());
-    for (std::vector<const Array *>::const_iterator it = objects.begin(),
-                                                    ie = objects.end();
-         it != ie; ++it) {
-      const Array *array = *it;
-      std::vector<unsigned char> data;
+        data.reserve(array->size);
+        for (unsigned offset = 0; offset < array->size; offset++) {
+          // FIXME: Can we use Z3ASTHandle here?
+          ::Z3_ast counter;
+          // WTF: Why are you calling Z3_mk_bv2int()??
+          Z3ASTHandle initial_read = Z3ASTHandle(Z3_mk_bv2int(
+              builder->ctx, builder->getInitialRead(array, offset), 0), builder->ctx);
+          bool successfulEval = Z3_model_eval(builder->ctx, m, initial_read, Z3_TRUE, &counter);
+          assert(successfulEval && "Failed to evaluate model");
+          Z3_inc_ref(builder->ctx, counter);
+          int val = 0;
+          bool successGet = Z3_get_numeral_int(builder->ctx, counter, &val);
+          assert(successGet && "failed to get value back");
+          data.push_back(val);
+          Z3_dec_ref(builder->ctx, counter);
+        }
 
-      data.reserve(array->size);
-      for (unsigned offset = 0; offset < array->size; offset++) {
-        // FIXME: Can we use Z3ASTHandle here?
-        ::Z3_ast counter;
-        // WTF: Why are you calling Z3_mk_bv2int()??
-        Z3ASTHandle initial_read = Z3ASTHandle(Z3_mk_bv2int(
-            builder->ctx, builder->getInitialRead(array, offset), 0), builder->ctx);
-        bool successfulEval = Z3_model_eval(builder->ctx, m, initial_read, Z3_TRUE, &counter);
-        assert(successfulEval && "Failed to evaluate model");
-        Z3_inc_ref(builder->ctx, counter);
-        int val = 0;
-        bool successGet = Z3_get_numeral_int(builder->ctx, counter, &val);
-        assert(successGet && "failed to get value back");
-        data.push_back(val);
-        Z3_dec_ref(builder->ctx, counter);
+        values.push_back(data);
       }
 
-      values.push_back(data);
+      if (m) Z3_model_dec_ref(builder->ctx, m);
+      return SolverImpl::SOLVER_RUN_STATUS_SUCCESS_SOLVABLE;
     }
-
-    if (m) Z3_model_dec_ref(builder->ctx, m);
-    return SolverImpl::SOLVER_RUN_STATUS_SUCCESS_SOLVABLE;
+    default:
+      hasSolution = false;
+      return SolverImpl::SOLVER_RUN_STATUS_SUCCESS_UNSOLVABLE;
   }
-
-  return SolverImpl::SOLVER_RUN_STATUS_SUCCESS_UNSOLVABLE;
 }
 
 SolverImpl::SolverRunStatus Z3SolverImpl::getOperationStatusCode() {
