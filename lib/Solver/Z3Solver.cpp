@@ -88,7 +88,9 @@ char *Z3SolverImpl::getConstraintLog(const Query &query) {
     Z3_solver_assert(builder->ctx, the_solver, builder->construct(*it));
   }
 
-  return strdup(Z3_solver_to_string(builder->ctx, the_solver));
+  char* result = strdup(Z3_solver_to_string(builder->ctx, the_solver));
+  Z3_solver_dec_ref(builder->ctx, the_solver);
+  return result;
 }
 
 bool Z3SolverImpl::computeTruth(const Query &query, bool &isValid) {
@@ -126,6 +128,7 @@ bool Z3SolverImpl::computeInitialValues(
     const Query &query, const std::vector<const Array *> &objects,
     std::vector<std::vector<unsigned char> > &values, bool &hasSolution) {
 
+  // FIXME: Don't make a new solver for every query!
   Z3_solver the_solver = Z3_mk_simple_solver(builder->ctx);
   Z3_solver_inc_ref(builder->ctx, the_solver);
 
@@ -162,6 +165,7 @@ bool Z3SolverImpl::computeInitialValues(
     else
       ++stats::queriesValid;
   }
+  Z3_solver_dec_ref(builder->ctx, the_solver);
   return success;
 }
 
