@@ -83,7 +83,7 @@ typedef Z3NodeHandle<Z3_sort> Z3SortHandle;
 template <> inline ::Z3_ast Z3NodeHandle<Z3_ast>::as_ast() { return node; }
 typedef Z3NodeHandle<Z3_ast> Z3ASTHandle;
 
-class Z3ArrayExprHash : public ArrayExprHash<Z3_ast> {
+class Z3ArrayExprHash : public ArrayExprHash<Z3ASTHandle> {
 
   friend class Z3Builder;
 
@@ -93,81 +93,71 @@ public:
 };
 
 class Z3Builder {
-  ExprHashMap<std::pair<Z3_ast, unsigned> > constructed;
-
-  /// optimizeDivides - Rewrite division and reminders by constants
-  /// into multiplies and shifts. STP should probably handle this for
-  /// use.
-  bool optimizeDivides;
-
+  ExprHashMap<std::pair<Z3ASTHandle, unsigned> > constructed;
   Z3ArrayExprHash _arr_hash;
 
 private:
-  Z3_ast bvOne(unsigned width);
-  Z3_ast bvZero(unsigned width);
-  Z3_ast bvMinusOne(unsigned width);
-  Z3_ast bvConst32(unsigned width, uint32_t value);
-  Z3_ast bvConst64(unsigned width, uint64_t value);
-  Z3_ast bvZExtConst(unsigned width, uint64_t value);
-  Z3_ast bvSExtConst(unsigned width, uint64_t value);
-
-  Z3_ast bvBoolExtract(Z3_ast expr, int bit);
-  Z3_ast bvExtract(Z3_ast expr, unsigned top, unsigned bottom);
-  Z3_ast eqExpr(Z3_ast a, Z3_ast b);
+  Z3ASTHandle bvOne(unsigned width);
+  Z3ASTHandle bvZero(unsigned width);
+  Z3ASTHandle bvMinusOne(unsigned width);
+  Z3ASTHandle bvConst32(unsigned width, uint32_t value);
+  Z3ASTHandle bvConst64(unsigned width, uint64_t value);
+  Z3ASTHandle bvZExtConst(unsigned width, uint64_t value);
+  Z3ASTHandle bvSExtConst(unsigned width, uint64_t value);
+  Z3ASTHandle bvBoolExtract(Z3ASTHandle expr, int bit);
+  Z3ASTHandle bvExtract(Z3ASTHandle expr, unsigned top, unsigned bottom);
+  Z3ASTHandle eqExpr(Z3ASTHandle a, Z3ASTHandle b);
 
   // logical left and right shift (not arithmetic)
-  Z3_ast bvLeftShift(Z3_ast expr, unsigned shift);
-  Z3_ast bvRightShift(Z3_ast expr, unsigned shift);
-  Z3_ast bvVarLeftShift(Z3_ast expr, Z3_ast shift);
-  Z3_ast bvVarRightShift(Z3_ast expr, Z3_ast shift);
-  Z3_ast bvVarArithRightShift(Z3_ast expr, Z3_ast shift);
+  Z3ASTHandle bvLeftShift(Z3ASTHandle expr, unsigned shift);
+  Z3ASTHandle bvRightShift(Z3ASTHandle expr, unsigned shift);
+  Z3ASTHandle bvVarLeftShift(Z3ASTHandle expr, Z3ASTHandle shift);
+  Z3ASTHandle bvVarRightShift(Z3ASTHandle expr, Z3ASTHandle shift);
+  Z3ASTHandle bvVarArithRightShift(Z3ASTHandle expr, Z3ASTHandle shift);
 
   // Some STP-style bitvector arithmetic
-  Z3_ast bvMinusExpr(unsigned width, Z3_ast minuend, Z3_ast subtrahend);
-  Z3_ast bvPlusExpr(unsigned width, Z3_ast augend, Z3_ast addend);
-  Z3_ast bvMultExpr(unsigned width, Z3_ast multiplacand, Z3_ast multiplier);
-  Z3_ast bvDivExpr(unsigned width, Z3_ast dividend, Z3_ast divisor);
-  Z3_ast sbvDivExpr(unsigned width, Z3_ast dividend, Z3_ast divisor);
-  Z3_ast bvModExpr(unsigned width, Z3_ast dividend, Z3_ast divisor);
-  Z3_ast sbvModExpr(unsigned width, Z3_ast dividend, Z3_ast divisor);
-  Z3_ast notExpr(Z3_ast expr);
-  Z3_ast bvNotExpr(Z3_ast expr);
-  Z3_ast andExpr(Z3_ast lhs, Z3_ast rhs);
-  Z3_ast bvAndExpr(Z3_ast lhs, Z3_ast rhs);
-  Z3_ast orExpr(Z3_ast lhs, Z3_ast rhs);
-  Z3_ast bvOrExpr(Z3_ast lhs, Z3_ast rhs);
-  Z3_ast iffExpr(Z3_ast lhs, Z3_ast rhs);
-  Z3_ast bvXorExpr(Z3_ast lhs, Z3_ast rhs);
-  Z3_ast bvSignExtend(Z3_ast src, unsigned width);
+  Z3ASTHandle bvMinusExpr(unsigned width, Z3ASTHandle minuend, Z3ASTHandle subtrahend);
+  Z3ASTHandle bvPlusExpr(unsigned width, Z3ASTHandle augend, Z3ASTHandle addend);
+  Z3ASTHandle bvMultExpr(unsigned width, Z3ASTHandle multiplacand, Z3ASTHandle multiplier);
+  Z3ASTHandle bvDivExpr(unsigned width, Z3ASTHandle dividend, Z3ASTHandle divisor);
+  Z3ASTHandle sbvDivExpr(unsigned width, Z3ASTHandle dividend, Z3ASTHandle divisor);
+  Z3ASTHandle bvModExpr(unsigned width, Z3ASTHandle dividend, Z3ASTHandle divisor);
+  Z3ASTHandle sbvModExpr(unsigned width, Z3ASTHandle dividend, Z3ASTHandle divisor);
+  Z3ASTHandle notExpr(Z3ASTHandle expr);
+  Z3ASTHandle bvNotExpr(Z3ASTHandle expr);
+  Z3ASTHandle andExpr(Z3ASTHandle lhs, Z3ASTHandle rhs);
+  Z3ASTHandle bvAndExpr(Z3ASTHandle lhs, Z3ASTHandle rhs);
+  Z3ASTHandle orExpr(Z3ASTHandle lhs, Z3ASTHandle rhs);
+  Z3ASTHandle bvOrExpr(Z3ASTHandle lhs, Z3ASTHandle rhs);
+  Z3ASTHandle iffExpr(Z3ASTHandle lhs, Z3ASTHandle rhs);
+  Z3ASTHandle bvXorExpr(Z3ASTHandle lhs, Z3ASTHandle rhs);
+  Z3ASTHandle bvSignExtend(Z3ASTHandle src, unsigned width);
 
   // Some STP-style array domain interface
-  Z3_ast writeExpr(Z3_ast array, Z3_ast index, Z3_ast value);
-  Z3_ast readExpr(Z3_ast array, Z3_ast index);
+  Z3ASTHandle writeExpr(Z3ASTHandle array, Z3ASTHandle index, Z3ASTHandle value);
+  Z3ASTHandle readExpr(Z3ASTHandle array, Z3ASTHandle index);
 
   // ITE-expression constructor
-  Z3_ast iteExpr(Z3_ast condition, Z3_ast whenTrue, Z3_ast whenFalse);
+  Z3ASTHandle iteExpr(Z3ASTHandle condition, Z3ASTHandle whenTrue, Z3ASTHandle whenFalse);
 
   // Bitvector length
-  int getBVLength(Z3_ast expr);
+  unsigned getBVLength(Z3ASTHandle expr);
 
   // Bitvector comparison
-  Z3_ast bvLtExpr(Z3_ast lhs, Z3_ast rhs);
-  Z3_ast bvLeExpr(Z3_ast lhs, Z3_ast rhs);
-  Z3_ast sbvLtExpr(Z3_ast lhs, Z3_ast rhs);
-  Z3_ast sbvLeExpr(Z3_ast lhs, Z3_ast rhs);
+  Z3ASTHandle bvLtExpr(Z3ASTHandle lhs, Z3ASTHandle rhs);
+  Z3ASTHandle bvLeExpr(Z3ASTHandle lhs, Z3ASTHandle rhs);
+  Z3ASTHandle sbvLtExpr(Z3ASTHandle lhs, Z3ASTHandle rhs);
+  Z3ASTHandle sbvLeExpr(Z3ASTHandle lhs, Z3ASTHandle rhs);
 
-  Z3_ast constructAShrByConstant(Z3_ast expr, unsigned shift, Z3_ast isSigned);
-  Z3_ast constructMulByConstant(Z3_ast expr, unsigned width, uint64_t x);
-  Z3_ast constructUDivByConstant(Z3_ast expr_n, unsigned width, uint64_t d);
-  Z3_ast constructSDivByConstant(Z3_ast expr_n, unsigned width, uint64_t d);
+  Z3ASTHandle constructAShrByConstant(Z3ASTHandle expr, unsigned shift, Z3ASTHandle isSigned);
 
-  Z3_ast getInitialArray(const Array *os);
-  Z3_ast getArrayForUpdate(const Array *root, const UpdateNode *un);
+  Z3ASTHandle getInitialArray(const Array *os);
+  Z3ASTHandle getArrayForUpdate(const Array *root, const UpdateNode *un);
 
-  Z3_ast constructActual(ref<Expr> e, int *width_out);
-  Z3_ast construct(ref<Expr> e, int *width_out);
+  Z3ASTHandle constructActual(ref<Expr> e, int *width_out);
+  Z3ASTHandle construct(ref<Expr> e, int *width_out);
 
-  Z3_ast buildArray(const char *name, unsigned indexWidth, unsigned valueWidth);
+  Z3ASTHandle buildArray(const char *name, unsigned indexWidth, unsigned valueWidth);
 
 public:
   Z3_context ctx;
@@ -175,12 +165,12 @@ public:
   Z3Builder();
   ~Z3Builder();
 
-  Z3_ast getTrue();
-  Z3_ast getFalse();
-  Z3_ast getInitialRead(const Array *os, unsigned index);
+  Z3ASTHandle getTrue();
+  Z3ASTHandle getFalse();
+  Z3ASTHandle getInitialRead(const Array *os, unsigned index);
 
-  Z3_ast construct(ref<Expr> e) {
-    Z3_ast res = construct(e, 0);
+  Z3ASTHandle construct(ref<Expr> e) {
+    Z3ASTHandle res = construct(e, 0);
     // FIXME: This is preventing reuse of constructed Z3 expressions
     // between calls. Presumably the motivation is to prevent the cache
     // size from exploding but we could get better Z3 ast reuse if we let the client
