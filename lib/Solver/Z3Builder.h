@@ -36,7 +36,11 @@ private:
 public:
   Z3NodeHandle() : node(NULL), context(NULL) {}
   Z3NodeHandle(const T _node, const ::Z3_context _context)
-      : node(_node), context(_context){};
+      : node(_node), context(_context) {
+    if (node && context) {
+      ::Z3_inc_ref(context, as_ast());
+    }
+  };
   ~Z3NodeHandle() {
     if (node && context) {
       ::Z3_dec_ref(context, as_ast());
