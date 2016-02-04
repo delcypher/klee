@@ -6,7 +6,8 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-
+#include "klee/Config/config.h"
+#ifdef ENABLE_Z3
 #include "Z3Builder.h"
 
 #include "klee/Expr.h"
@@ -975,3 +976,4 @@ Z3_ast Z3Builder::constructActual(ref<Expr> e, int *width_out) {
     return getTrue();
   }
 }
+#endif // ENABLE_Z3
