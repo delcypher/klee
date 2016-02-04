@@ -41,7 +41,7 @@ public:
                             std::vector<std::vector<unsigned char> > &values,
                             bool &hasSolution);
   SolverRunStatus runAndGetCex(Z3Builder *builder, Z3_solver the_solver,
-                               Z3_ast q,
+                               Z3ASTHandle q,
                                const std::vector<const Array *> &objects,
                                std::vector<std::vector<unsigned char> > &values,
                                bool &hasSolution);
@@ -152,7 +152,7 @@ bool Z3SolverImpl::computeInitialValues(
   ++stats::queries;
   ++stats::queryCounterexamples;
 
-  Z3_ast stp_e = builder->construct(query.expr);
+  Z3ASTHandle stp_e = Z3ASTHandle(builder->construct(query.expr), builder->ctx);
 
   bool success;
   runStatusCode =
@@ -170,7 +170,7 @@ bool Z3SolverImpl::computeInitialValues(
 }
 
 SolverImpl::SolverRunStatus
-Z3SolverImpl::runAndGetCex(Z3Builder *builder, Z3_solver the_solver, Z3_ast q,
+Z3SolverImpl::runAndGetCex(Z3Builder *builder, Z3_solver the_solver, Z3ASTHandle q,
                            const std::vector<const Array *> &objects,
                            std::vector<std::vector<unsigned char> > &values,
                            bool &hasSolution) {
@@ -179,6 +179,7 @@ Z3SolverImpl::runAndGetCex(Z3Builder *builder, Z3_solver the_solver, Z3_ast q,
   if (Z3_solver_check(builder->ctx, the_solver) == Z3_L_TRUE) {
     hasSolution = true;
     Z3_model m = Z3_solver_get_model(builder->ctx, the_solver);
+    if (m) Z3_model_inc_ref(builder->ctx, m);
 
     values.reserve(objects.size());
     for (std::vector<const Array *>::const_iterator it = objects.begin(),
@@ -189,18 +190,25 @@ Z3SolverImpl::runAndGetCex(Z3Builder *builder, Z3_solver the_solver, Z3_ast q,
 
       data.reserve(array->size);
       for (unsigned offset = 0; offset < array->size; offset++) {
-        Z3_ast counter;
-        Z3_ast initial_read = Z3_mk_bv2int(
-            builder->ctx, builder->getInitialRead(array, offset), 0);
-        Z3_model_eval(builder->ctx, m, initial_read, Z3_TRUE, &counter);
+        // FIXME: Can we use Z3ASTHandle here?
+        ::Z3_ast counter;
+        // WTF: Why are you calling Z3_mk_bv2int()??
+        Z3ASTHandle initial_read = Z3ASTHandle(Z3_mk_bv2int(
+            builder->ctx, builder->getInitialRead(array, offset), 0), builder->ctx);
+        bool successfulEval = Z3_model_eval(builder->ctx, m, initial_read, Z3_TRUE, &counter);
+        assert(successfulEval && "Failed to evaluate model");
+        Z3_inc_ref(builder->ctx, counter);
         int val = 0;
-        Z3_get_numeral_int(builder->ctx, counter, &val);
+        bool successGet = Z3_get_numeral_int(builder->ctx, counter, &val);
+        assert(successGet && "failed to get value back");
         data.push_back(val);
+        Z3_dec_ref(builder->ctx, counter);
       }
 
       values.push_back(data);
     }
 
+    if (m) Z3_model_dec_ref(builder->ctx, m);
     return SolverImpl::SOLVER_RUN_STATUS_SUCCESS_SOLVABLE;
   }
 
