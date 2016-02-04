@@ -57,13 +57,21 @@ Z3Builder::Z3Builder() {
 
 Z3Builder::~Z3Builder() { Z3_del_context(ctx); }
 
+Z3SortHandle Z3Builder::getBvSort(unsigned width) {
+  // FIXME: cache these
+  return Z3SortHandle(Z3_mk_bv_sort(ctx, width), ctx);
+}
+
+Z3SortHandle Z3Builder::getArraySort(Z3SortHandle domainSort, Z3SortHandle rangeSort) {
+  // FIXME: cache these
+  return Z3SortHandle(Z3_mk_array_sort(ctx, domainSort, rangeSort), ctx);
+}
+
 Z3ASTHandle Z3Builder::buildArray(const char *name, unsigned indexWidth,
                              unsigned valueWidth) {
-  // XXX don't rebuild if this stuff cons's
-  // FIXME: Leak!
-  Z3_sort t1 = Z3_mk_bv_sort(ctx, indexWidth);
-  Z3_sort t2 = Z3_mk_bv_sort(ctx, valueWidth);
-  Z3_sort t = Z3_mk_array_sort(ctx, t1, t2);
+  Z3SortHandle domainSort = getBvSort(indexWidth);
+  Z3SortHandle rangeSort = getBvSort(valueWidth);
+  Z3SortHandle t = getArraySort(domainSort, rangeSort);
   Z3_symbol s = Z3_mk_string_symbol(ctx, const_cast<char *>(name));
   return Z3ASTHandle(Z3_mk_const(ctx, s, t), ctx);
 }
@@ -89,14 +97,12 @@ Z3ASTHandle Z3Builder::bvMinusOne(unsigned width) {
 }
 
 Z3ASTHandle Z3Builder::bvConst32(unsigned width, uint32_t value) {
-  // FIXME: sort Leak
-  Z3_sort t = Z3_mk_bv_sort(ctx, width);
+  Z3SortHandle t = getBvSort(width);
   return Z3ASTHandle(Z3_mk_unsigned_int(ctx, value, t), ctx);
 }
 
 Z3ASTHandle Z3Builder::bvConst64(unsigned width, uint64_t value) {
-  // FIXME: sort Leak
-  Z3_sort t = Z3_mk_bv_sort(ctx, width);
+  Z3SortHandle t = getBvSort(width);
   return Z3ASTHandle(Z3_mk_unsigned_int64(ctx, value, t), ctx);
 }
 
@@ -115,8 +121,7 @@ Z3ASTHandle Z3Builder::bvSExtConst(unsigned width, uint64_t value) {
   if (width <= 64)
     return bvConst64(width, value);
 
-  // FIXME: sort leak
-  Z3_sort t = Z3_mk_bv_sort(ctx, width - 64);
+  Z3SortHandle t = getBvSort(width - 64);
   if (value >> 63) {
     Z3ASTHandle r = Z3ASTHandle(Z3_mk_int64(ctx, -1, t), ctx);
     return Z3ASTHandle(Z3_mk_concat(ctx, r, bvConst64(64, value)), ctx);
@@ -346,8 +351,7 @@ Z3ASTHandle Z3Builder::bvXorExpr(Z3ASTHandle lhs, Z3ASTHandle rhs) {
 }
 
 Z3ASTHandle Z3Builder::bvSignExtend(Z3ASTHandle src, unsigned width) {
-  // FIXME: Sort leak?
-  unsigned src_width = Z3_get_bv_sort_size(ctx, Z3_get_sort(ctx, src));
+  unsigned src_width = Z3_get_bv_sort_size(ctx, Z3SortHandle(Z3_get_sort(ctx, src), ctx));
   assert(src_width <= width && "attempted to extend longer data");
 
   return Z3ASTHandle(Z3_mk_sign_ext(ctx, width - src_width, src), ctx);
@@ -366,8 +370,7 @@ Z3ASTHandle Z3Builder::iteExpr(Z3ASTHandle condition, Z3ASTHandle whenTrue, Z3AS
 }
 
 unsigned Z3Builder::getBVLength(Z3ASTHandle expr) {
-  // FIXME: Sort leak?
-  return Z3_get_bv_sort_size(ctx, Z3_get_sort(ctx, expr));
+  return Z3_get_bv_sort_size(ctx, Z3SortHandle(Z3_get_sort(ctx, expr), ctx));
 }
 
 Z3ASTHandle Z3Builder::bvLtExpr(Z3ASTHandle lhs, Z3ASTHandle rhs) {

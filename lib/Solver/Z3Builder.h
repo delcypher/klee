@@ -159,6 +159,9 @@ private:
 
   Z3ASTHandle buildArray(const char *name, unsigned indexWidth, unsigned valueWidth);
 
+  Z3SortHandle getBvSort(unsigned width);
+  Z3SortHandle getArraySort(Z3SortHandle domainSort, Z3SortHandle rangeSort);
+
 public:
   Z3_context ctx;
 
