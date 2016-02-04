@@ -174,7 +174,8 @@ Z3SolverImpl::runAndGetCex(Z3Builder *builder, Z3_solver the_solver, Z3ASTHandle
                            const std::vector<const Array *> &objects,
                            std::vector<std::vector<unsigned char> > &values,
                            bool &hasSolution) {
-  Z3_solver_assert(builder->ctx, the_solver, Z3_mk_not(builder->ctx, q));
+  Z3_solver_assert(builder->ctx, the_solver,
+                   Z3ASTHandle(Z3_mk_not(builder->ctx, q), builder->ctx));
 
   if (Z3_solver_check(builder->ctx, the_solver) == Z3_L_TRUE) {
     hasSolution = true;
