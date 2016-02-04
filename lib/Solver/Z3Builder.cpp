@@ -336,14 +336,28 @@ Z3ASTHandle Z3Builder::bvOrExpr(Z3ASTHandle lhs, Z3ASTHandle rhs) {
 }
 
 Z3ASTHandle Z3Builder::iffExpr(Z3ASTHandle lhs, Z3ASTHandle rhs) {
-  // FIXME: Do we always need to do this with bitvectors rather than
-  // Z3_mk_iff() ?
-  // a <== > ===  (not a) xor b
-  Z3ASTHandle xorExpr = Z3ASTHandle(Z3_mk_bvxor(ctx,
-                                                Z3ASTHandle(Z3_mk_bvnot(ctx, lhs), ctx),
-                                                rhs),
-                                    ctx);
-  return Z3ASTHandle(Z3_mk_extract(ctx, 0, 0, xorExpr), ctx);
+  Z3SortHandle lhsSort = Z3SortHandle(Z3_get_sort(ctx, lhs), ctx);
+  Z3SortHandle rhsSort = Z3SortHandle(Z3_get_sort(ctx, rhs), ctx);
+  assert(Z3_get_sort_kind(ctx, lhsSort) == Z3_get_sort_kind(ctx, rhsSort)
+         && "lhs and rhs sorts must match");
+
+  switch (Z3_get_sort_kind(ctx, lhsSort)) {
+    case Z3_BOOL_SORT: {
+      return Z3ASTHandle(Z3_mk_iff(ctx, lhs, rhs), ctx);
+    }
+    case Z3_BV_SORT: {
+      // FIXME: Should we just convert the result to a bool instead of a (_ BitVec 1)?
+      // a <==> b ===  (not a) xor b
+      Z3ASTHandle xorExpr = Z3ASTHandle(Z3_mk_bvxor(ctx,
+                                                    Z3ASTHandle(Z3_mk_bvnot(ctx, lhs), ctx),
+                                                    rhs),
+                                        ctx);
+      return Z3ASTHandle(Z3_mk_extract(ctx, 0, 0, xorExpr), ctx);
+    }
+    default:
+      llvm_unreachable("unhandled sort");
+      return Z3ASTHandle();
+  }
 }
 
 Z3ASTHandle Z3Builder::bvXorExpr(Z3ASTHandle lhs, Z3ASTHandle rhs) {
