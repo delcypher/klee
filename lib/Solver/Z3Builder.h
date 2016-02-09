@@ -94,6 +94,7 @@ class Z3ArrayExprHash : public ArrayExprHash<Z3ASTHandle> {
 public:
   Z3ArrayExprHash(){};
   virtual ~Z3ArrayExprHash();
+  void clear();
 };
 
 class Z3Builder {

@@ -44,6 +44,11 @@ void custom_z3_error_handler(Z3_context ctx, Z3_error_code ec) {
 
 Z3ArrayExprHash::~Z3ArrayExprHash() {}
 
+void Z3ArrayExprHash::clear() {
+  _update_node_hash.clear();
+  _array_hash.clear();
+}
+
 Z3Builder::Z3Builder() {
   // FIXME: Should probably let the client pass in a Z3_config instead
   Z3_config cfg = Z3_mk_config();
@@ -55,7 +60,12 @@ Z3Builder::Z3Builder() {
   Z3_del_config(cfg);
 }
 
-Z3Builder::~Z3Builder() { Z3_del_context(ctx); }
+Z3Builder::~Z3Builder() {
+  // Clear caches so memory gets freed before destroying context
+  constructed.clear();
+  _arr_hash.clear();
+  Z3_del_context(ctx);
+}
 
 Z3SortHandle Z3Builder::getBvSort(unsigned width) {
   // FIXME: cache these
