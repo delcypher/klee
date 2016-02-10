@@ -650,8 +650,8 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
 
   case Expr::Mul: {
     MulExpr *me = cast<MulExpr>(e);
-    assert(*width_out != 1 && "uncanonicalized mul");
     Z3ASTHandle right = construct(me->right, width_out);
+    assert(*width_out != 1 && "uncanonicalized mul");
     Z3ASTHandle left = construct(me->left, width_out);
     return bvMultExpr(*width_out, left, right);
   }
