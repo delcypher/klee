@@ -28,16 +28,6 @@ public:
     timeout = _timeout;
 
     unsigned int timeoutInMilliSeconds = (unsigned int) ((timeout * 1000) + 0.5);
-    // HACK: The description of this solver parameter is
-    // ```
-    // timeout (unsigned int) timeout (in milliseconds) (0 means no timeout)
-    // (default: 0)
-    // ```
-    // However Z3 seems to misbehave when the value of 0 is used. See
-    // https://github.com/Z3Prover/z3/issues/445
-    // Use UINT_MAX instead which gives a huge timeout which in practice we are
-    // unlikely
-    // to ever hit.
     if (timeoutInMilliSeconds == 0)
       timeoutInMilliSeconds = UINT_MAX;
     Z3_params_set_uint(builder->ctx,
@@ -72,9 +62,9 @@ Z3SolverImpl::Z3SolverImpl()
 
 Z3SolverImpl::~Z3SolverImpl() {
   Z3_params_dec_ref(builder->ctx, solverParameters);
-  delete builder; }
+  delete builder;
+}
 
-/***/
 
 Z3Solver::Z3Solver() : Solver(new Z3SolverImpl()) {}
 
@@ -85,8 +75,6 @@ char *Z3Solver::getConstraintLog(const Query &query) {
 void Z3Solver::setCoreSolverTimeout(double timeout) {
   impl->setCoreSolverTimeout(timeout);
 }
-
-/***/
 
 char *Z3SolverImpl::getConstraintLog(const Query &query) {
   Z3_solver the_solver = Z3_mk_simple_solver(builder->ctx);
@@ -108,7 +96,9 @@ bool Z3SolverImpl::computeTruth(const Query &query, bool &isValid) {
   std::vector<const Array *> objects;
   std::vector<std::vector<unsigned char> > values;
   bool hasSolution;
-
+  // TODO: This eventually calls runAndGetCex() which computes assignments.
+  // Here we don't even care about the assignments so that is a waste
+  // of time. Reimplement the logic here necessary to compute validity.
   if (!computeInitialValues(query, objects, values, hasSolution))
     return false;
 
@@ -138,8 +128,9 @@ bool Z3SolverImpl::computeValue(const Query &query, ref<Expr> &result) {
 bool Z3SolverImpl::computeInitialValues(
     const Query &query, const std::vector<const Array *> &objects,
     std::vector<std::vector<unsigned char> > &values, bool &hasSolution) {
-
-  // FIXME: Don't make a new solver for every query!
+  // TODO: Does making a new solver for each query have a performance
+  // impact vs making one global solver and using push and pop?
+  // TODO: is the "simple_solver" the right solver to use?
   Z3_solver the_solver = Z3_mk_simple_solver(builder->ctx);
   Z3_solver_inc_ref(builder->ctx, the_solver);
   Z3_solver_set_params(builder->ctx, the_solver, solverParameters);
