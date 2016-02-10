@@ -187,8 +187,9 @@ Z3SolverImpl::runAndGetCex(Z3Builder *builder, Z3_solver the_solver, Z3ASTHandle
   switch (solverResult) {
     case Z3_L_TRUE: {
       hasSolution = true;
-      Z3_model m = Z3_solver_get_model(builder->ctx, the_solver);
-      if (m) Z3_model_inc_ref(builder->ctx, m);
+      Z3_model theModel = Z3_solver_get_model(builder->ctx, the_solver);
+      assert(theModel && "Failed to retrieve model");
+      Z3_model_inc_ref(builder->ctx, theModel);
       values.reserve(objects.size());
       for (std::vector<const Array *>::const_iterator it = objects.begin(),
                                                       ie = objects.end();
@@ -203,7 +204,11 @@ Z3SolverImpl::runAndGetCex(Z3Builder *builder, Z3_solver the_solver, Z3ASTHandle
           // WTF: Why are you calling Z3_mk_bv2int()??
           Z3ASTHandle initial_read = Z3ASTHandle(Z3_mk_bv2int(
               builder->ctx, builder->getInitialRead(array, offset), 0), builder->ctx);
-          bool successfulEval = Z3_model_eval(builder->ctx, m, initial_read, Z3_TRUE, &counter);
+          bool successfulEval = Z3_model_eval(builder->ctx,
+                                              theModel,
+                                              initial_read,
+                                              /*model_completion=*/Z3_TRUE,
+                                              &counter);
           assert(successfulEval && "Failed to evaluate model");
           Z3_inc_ref(builder->ctx, counter);
           int val = 0;
@@ -216,7 +221,7 @@ Z3SolverImpl::runAndGetCex(Z3Builder *builder, Z3_solver the_solver, Z3ASTHandle
         values.push_back(data);
       }
 
-      if (m) Z3_model_dec_ref(builder->ctx, m);
+      Z3_model_dec_ref(builder->ctx, theModel);
       return SolverImpl::SOLVER_RUN_STATUS_SUCCESS_SOLVABLE;
     }
     case Z3_L_FALSE:
