@@ -93,16 +93,8 @@ Z3ASTHandle Z3Builder::buildArray(const char *name, unsigned indexWidth,
   return Z3ASTHandle(Z3_mk_const(ctx, s, t), ctx);
 }
 
-// FIXME: The return type here look wrong!
-/**
- * Make 1-bit bitvector whose only element is 1.
- */
 Z3ASTHandle Z3Builder::getTrue() { return Z3ASTHandle(Z3_mk_true(ctx), ctx); }
 
-// FIXME: The return type here look wrong!
-/**
- * Make 1-bit bitvector whose only element is 0.
- */
 Z3ASTHandle Z3Builder::getFalse() { return Z3ASTHandle(Z3_mk_false(ctx), ctx); }
 
 Z3ASTHandle Z3Builder::bvOne(unsigned width) { return bvZExtConst(width, 1); }
