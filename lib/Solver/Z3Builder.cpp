@@ -251,81 +251,6 @@ Z3ASTHandle Z3Builder::bvVarArithRightShift(Z3ASTHandle expr, Z3ASTHandle shift)
   return res;
 }
 
-Z3ASTHandle Z3Builder::bvMinusExpr(unsigned width, Z3ASTHandle minuend,
-                              Z3ASTHandle subtrahend) {
-  Z3ASTHandle plainExpr = Z3ASTHandle(Z3_mk_bvsub(ctx, minuend, subtrahend), ctx);
-  if (getBVLength(plainExpr) == width)
-    return plainExpr;
-
-  // FIXME: Do we ever hit this?
-  assert(0);
-  //return Z3ASTHandle(Z3_mk_extract(ctx, width - 1, 0, plainExpr), ctx);
-}
-
-Z3ASTHandle Z3Builder::bvPlusExpr(unsigned width, Z3ASTHandle augend, Z3ASTHandle addend) {
-  Z3ASTHandle plainExpr = Z3ASTHandle(Z3_mk_bvadd(ctx, augend, addend), ctx);
-  if (getBVLength(plainExpr) == width)
-    return plainExpr;
-
-  // FIXME: Do we ever hit this?
-  assert(0);
-  //return Z3ASTHandle(Z3_mk_extract(ctx, width - 1, 0, plainExpr), ctx);
-}
-
-Z3ASTHandle Z3Builder::bvMultExpr(unsigned width, Z3ASTHandle multiplacand,
-                             Z3ASTHandle multiplier) {
-  Z3ASTHandle plainExpr = Z3ASTHandle(Z3_mk_bvmul(ctx, multiplacand, multiplier), ctx);
-  if (getBVLength(plainExpr) == width)
-    return plainExpr;
-
-  // FIXME: Do we ever hit this?
-  assert(0);
-  //return Z3ASTHandle(Z3_mk_extract(ctx, width - 1, 0, plainExpr), ctx);
-}
-
-Z3ASTHandle Z3Builder::bvDivExpr(unsigned width, Z3ASTHandle dividend, Z3ASTHandle divisor) {
-  Z3ASTHandle plainExpr = Z3ASTHandle(Z3_mk_bvudiv(ctx, dividend, divisor), ctx);
-  if (getBVLength(plainExpr) == width)
-    return plainExpr;
-
-  // FIXME: Do we ever hit this?
-  assert(0);
-  //return Z3_mk_extract(ctx, width - 1, 0, plainExpr);
-}
-
-Z3ASTHandle Z3Builder::sbvDivExpr(unsigned width, Z3ASTHandle dividend, Z3ASTHandle divisor) {
-  Z3ASTHandle plainExpr = Z3ASTHandle(Z3_mk_bvsdiv(ctx, dividend, divisor), ctx);
-  if (getBVLength(plainExpr) == width)
-    return plainExpr;
-
-  // FIXME: Do we ever hit this?
-  assert(0);
-  //return Z3_mk_extract(ctx, width - 1, 0, plainExpr);
-}
-
-Z3ASTHandle Z3Builder::bvModExpr(unsigned width, Z3ASTHandle dividend, Z3ASTHandle divisor) {
-  // FIXME: is this the right call?
-  Z3ASTHandle plainExpr = Z3ASTHandle(Z3_mk_bvurem(ctx, dividend, divisor), ctx);
-  if (getBVLength(plainExpr) == width)
-    return plainExpr;
-
-  // FIXME: Do we ever hit this?
-  assert(0);
-  //return Z3_mk_extract(ctx, width - 1, 0, plainExpr);
-}
-
-Z3ASTHandle Z3Builder::sbvModExpr(unsigned width, Z3ASTHandle dividend, Z3ASTHandle divisor) {
-  // FIXME: An alternative is to use Z3_mk_bvsmod, need to check which one is
-  // good
-  Z3ASTHandle plainExpr = Z3ASTHandle(Z3_mk_bvsrem(ctx, dividend, divisor), ctx);
-  if (getBVLength(plainExpr) == width)
-    return plainExpr;
-
-  // FIXME: Do we ever hit this?
-  assert(0);
-  //return Z3_mk_extract(ctx, width - 1, 0, plainExpr);
-}
-
 Z3ASTHandle Z3Builder::notExpr(Z3ASTHandle expr) {
   return Z3ASTHandle(Z3_mk_not(ctx, expr), ctx);
 }
@@ -503,6 +428,8 @@ Z3ASTHandle Z3Builder::getArrayForUpdate(const Array *root, const UpdateNode *un
 /** if *width_out!=1 then result is a bitvector,
     otherwise it is a bool */
 Z3ASTHandle Z3Builder::construct(ref<Expr> e, int *width_out) {
+  // TODO: We could potentially use Z3_simplify() here
+  // to store simpler expressions.
   if (!UseConstructHashZ3 || isa<ConstantExpr>(e)) {
     return constructActual(e, width_out);
   } else {
@@ -631,13 +558,14 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
   }
 
   // Arithmetic
-
   case Expr::Add: {
     AddExpr *ae = cast<AddExpr>(e);
     Z3ASTHandle left = construct(ae->left, width_out);
     Z3ASTHandle right = construct(ae->right, width_out);
     assert(*width_out != 1 && "uncanonicalized add");
-    return bvPlusExpr(*width_out, left, right);
+    Z3ASTHandle result = Z3ASTHandle(Z3_mk_bvadd(ctx, left, right), ctx);
+    assert(getBVLength(result) == static_cast<unsigned>(*width_out) && "width mismatch");
+    return result;
   }
 
   case Expr::Sub: {
@@ -645,7 +573,9 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
     Z3ASTHandle left = construct(se->left, width_out);
     Z3ASTHandle right = construct(se->right, width_out);
     assert(*width_out != 1 && "uncanonicalized sub");
-    return bvMinusExpr(*width_out, left, right);
+    Z3ASTHandle result = Z3ASTHandle(Z3_mk_bvsub(ctx, left, right), ctx);
+    assert(getBVLength(result) == static_cast<unsigned>(*width_out) && "width mismatch");
+    return result;
   }
 
   case Expr::Mul: {
@@ -653,7 +583,9 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
     Z3ASTHandle right = construct(me->right, width_out);
     assert(*width_out != 1 && "uncanonicalized mul");
     Z3ASTHandle left = construct(me->left, width_out);
-    return bvMultExpr(*width_out, left, right);
+    Z3ASTHandle result = Z3ASTHandle(Z3_mk_bvmul(ctx, left, right), ctx);
+    assert(getBVLength(result) == static_cast<unsigned>(*width_out) && "width mismatch");
+    return result;
   }
 
   case Expr::UDiv: {
@@ -670,7 +602,9 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
     }
 
     Z3ASTHandle right = construct(de->right, width_out);
-    return bvDivExpr(*width_out, left, right);
+    Z3ASTHandle result = Z3ASTHandle(Z3_mk_bvudiv(ctx, left, right), ctx);
+    assert(getBVLength(result) == static_cast<unsigned>(*width_out) && "width mismatch");
+    return result;
   }
 
   case Expr::SDiv: {
@@ -678,7 +612,9 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
     Z3ASTHandle left = construct(de->left, width_out);
     assert(*width_out != 1 && "uncanonicalized sdiv");
     Z3ASTHandle right = construct(de->right, width_out);
-    return sbvDivExpr(*width_out, left, right);
+    Z3ASTHandle result = Z3ASTHandle(Z3_mk_bvsdiv(ctx, left, right), ctx);
+    assert(getBVLength(result) == static_cast<unsigned>(*width_out) && "width mismatch");
+    return result;
   }
 
   case Expr::URem: {
@@ -707,7 +643,9 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
     }
 
     Z3ASTHandle right = construct(de->right, width_out);
-    return bvModExpr(*width_out, left, right);
+    Z3ASTHandle result = Z3ASTHandle(Z3_mk_bvurem(ctx, left, right), ctx);
+    assert(getBVLength(result) == static_cast<unsigned>(*width_out) && "width mismatch");
+    return result;
   }
 
   case Expr::SRem: {
@@ -715,11 +653,14 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
     Z3ASTHandle left = construct(de->left, width_out);
     Z3ASTHandle right = construct(de->right, width_out);
     assert(*width_out != 1 && "uncanonicalized srem");
-    return sbvModExpr(*width_out, left, right);
+    // LLVM's srem instruction says that the sign follows the dividend (``left``).
+    // Z3's C API says ``Z3_mk_bvsrem()`` does this so these seem to match.
+    Z3ASTHandle result = Z3ASTHandle(Z3_mk_bvsrem(ctx, left, right), ctx);
+    assert(getBVLength(result) == static_cast<unsigned>(*width_out) && "width mismatch");
+    return result;
   }
 
   // Bitwise
-
   case Expr::Not: {
     NotExpr *ne = cast<NotExpr>(e);
     Z3ASTHandle expr = construct(ne->expr, width_out);

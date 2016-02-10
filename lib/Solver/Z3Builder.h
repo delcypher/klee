@@ -120,14 +120,6 @@ private:
   Z3ASTHandle bvVarRightShift(Z3ASTHandle expr, Z3ASTHandle shift);
   Z3ASTHandle bvVarArithRightShift(Z3ASTHandle expr, Z3ASTHandle shift);
 
-  // Some STP-style bitvector arithmetic
-  Z3ASTHandle bvMinusExpr(unsigned width, Z3ASTHandle minuend, Z3ASTHandle subtrahend);
-  Z3ASTHandle bvPlusExpr(unsigned width, Z3ASTHandle augend, Z3ASTHandle addend);
-  Z3ASTHandle bvMultExpr(unsigned width, Z3ASTHandle multiplacand, Z3ASTHandle multiplier);
-  Z3ASTHandle bvDivExpr(unsigned width, Z3ASTHandle dividend, Z3ASTHandle divisor);
-  Z3ASTHandle sbvDivExpr(unsigned width, Z3ASTHandle dividend, Z3ASTHandle divisor);
-  Z3ASTHandle bvModExpr(unsigned width, Z3ASTHandle dividend, Z3ASTHandle divisor);
-  Z3ASTHandle sbvModExpr(unsigned width, Z3ASTHandle dividend, Z3ASTHandle divisor);
   Z3ASTHandle notExpr(Z3ASTHandle expr);
   Z3ASTHandle bvNotExpr(Z3ASTHandle expr);
   Z3ASTHandle andExpr(Z3ASTHandle lhs, Z3ASTHandle rhs);
@@ -138,7 +130,7 @@ private:
   Z3ASTHandle bvXorExpr(Z3ASTHandle lhs, Z3ASTHandle rhs);
   Z3ASTHandle bvSignExtend(Z3ASTHandle src, unsigned width);
 
-  // Some STP-style array domain interface
+  // Array operations
   Z3ASTHandle writeExpr(Z3ASTHandle array, Z3ASTHandle index, Z3ASTHandle value);
   Z3ASTHandle readExpr(Z3ASTHandle array, Z3ASTHandle index);
 
