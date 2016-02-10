@@ -28,6 +28,18 @@ public:
     timeout = _timeout;
 
     unsigned int timeoutInMilliSeconds = (unsigned int) ((timeout * 1000) + 0.5);
+    // HACK: The description of this solver parameter is
+    // ```
+    // timeout (unsigned int) timeout (in milliseconds) (0 means no timeout)
+    // (default: 0)
+    // ```
+    // However Z3 seems to misbehave when the value of 0 is used. See
+    // https://github.com/Z3Prover/z3/issues/445
+    // Use UINT_MAX instead which gives a huge timeout which in practice we are
+    // unlikely
+    // to ever hit.
+    if (timeoutInMilliSeconds == 0)
+      timeoutInMilliSeconds = UINT_MAX;
     Z3_params_set_uint(builder->ctx,
                        solverParameters,
                        timeoutParamStrSymbol,
@@ -55,7 +67,7 @@ Z3SolverImpl::Z3SolverImpl()
   solverParameters = Z3_mk_params(builder->ctx);
   Z3_params_inc_ref(builder->ctx, solverParameters);
   timeoutParamStrSymbol = Z3_mk_string_symbol(builder->ctx, "timeout");
-  setCoreSolverTimeout(0.0);
+  setCoreSolverTimeout(0.0); // Default to no timeout
 }
 
 Z3SolverImpl::~Z3SolverImpl() {
@@ -149,12 +161,18 @@ bool Z3SolverImpl::computeInitialValues(
   runStatusCode =
       runAndGetCex(builder, the_solver, stp_e, objects, values, hasSolution);
 
-  if (hasSolution)
-    ++stats::queriesInvalid;
-  else
-    ++stats::queriesValid;
   Z3_solver_dec_ref(builder->ctx, the_solver);
-  return true; // FIXME: this is wrong!
+
+  if (runStatusCode == SolverImpl::SOLVER_RUN_STATUS_SUCCESS_SOLVABLE ||
+      runStatusCode == SolverImpl::SOLVER_RUN_STATUS_SUCCESS_UNSOLVABLE) {
+    if (hasSolution) {
+      ++stats::queriesInvalid;
+    } else {
+      ++stats::queriesValid;
+    }
+    return true; // success
+  }
+  return false; // failed
 }
 
 SolverImpl::SolverRunStatus
@@ -201,9 +219,26 @@ Z3SolverImpl::runAndGetCex(Z3Builder *builder, Z3_solver the_solver, Z3ASTHandle
       if (m) Z3_model_dec_ref(builder->ctx, m);
       return SolverImpl::SOLVER_RUN_STATUS_SUCCESS_SOLVABLE;
     }
-    default:
+    case Z3_L_FALSE:
       hasSolution = false;
       return SolverImpl::SOLVER_RUN_STATUS_SUCCESS_UNSOLVABLE;
+    case Z3_L_UNDEF: {
+      ::Z3_string reason =
+          ::Z3_solver_get_reason_unknown(builder->ctx, the_solver);
+      if (strcmp(reason, "timeout") == 0) {
+        llvm::errs() << "timeout!\n";
+        return SolverImpl::SOLVER_RUN_STATUS_TIMEOUT;
+      }
+      if (strcmp(reason, "unknown") == 0) {
+        llvm::errs() << "unknown!\n";
+        return SolverImpl::SOLVER_RUN_STATUS_FAILURE;
+      }
+      llvm::errs() << "Unexpected solver failure. Reason is \"" << reason
+                   << "\"\n";
+      abort();
+    }
+    default:
+      llvm_unreachable("unhandled Z3 result");
   }
 }
 
