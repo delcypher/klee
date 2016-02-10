@@ -52,7 +52,7 @@ public:
                             const std::vector<const Array *> &objects,
                             std::vector<std::vector<unsigned char> > &values,
                             bool &hasSolution);
-  SolverRunStatus runAndGetCex(Z3Builder *builder, Z3_solver the_solver,
+  SolverRunStatus runAndGetCex(Z3_solver the_solver,
                                Z3ASTHandle q,
                                const std::vector<const Array *> &objects,
                                std::vector<std::vector<unsigned char> > &values,
@@ -159,7 +159,7 @@ bool Z3SolverImpl::computeInitialValues(
   Z3ASTHandle z3QueryExpr = Z3ASTHandle(builder->construct(query.expr), builder->ctx);
 
   runStatusCode =
-      runAndGetCex(builder, the_solver, z3QueryExpr, objects, values, hasSolution);
+      runAndGetCex(the_solver, z3QueryExpr, objects, values, hasSolution);
 
   Z3_solver_dec_ref(builder->ctx, the_solver);
 
@@ -176,7 +176,7 @@ bool Z3SolverImpl::computeInitialValues(
 }
 
 SolverImpl::SolverRunStatus
-Z3SolverImpl::runAndGetCex(Z3Builder *builder, Z3_solver the_solver, Z3ASTHandle q,
+Z3SolverImpl::runAndGetCex(Z3_solver the_solver, Z3ASTHandle q,
                            const std::vector<const Array *> &objects,
                            std::vector<std::vector<unsigned char> > &values,
                            bool &hasSolution) {
@@ -199,25 +199,24 @@ Z3SolverImpl::runAndGetCex(Z3Builder *builder, Z3_solver the_solver, Z3ASTHandle
 
         data.reserve(array->size);
         for (unsigned offset = 0; offset < array->size; offset++) {
-          // FIXME: Can we use Z3ASTHandle here?
-          ::Z3_ast counter;
-          // WTF: Why are you calling Z3_mk_bv2int()??
-          Z3ASTHandle initial_read = Z3ASTHandle(Z3_mk_bv2int(
-              builder->ctx, builder->getInitialRead(array, offset), 0), builder->ctx);
+          // We can't us Z3ASTHandle here so have to do ref counting manually
+          ::Z3_ast arrayElementExpr;
+          Z3ASTHandle initial_read = builder->getInitialRead(array, offset);
           bool successfulEval = Z3_model_eval(builder->ctx,
                                               theModel,
                                               initial_read,
                                               /*model_completion=*/Z3_TRUE,
-                                              &counter);
+                                              &arrayElementExpr);
           assert(successfulEval && "Failed to evaluate model");
-          Z3_inc_ref(builder->ctx, counter);
-          int val = 0;
-          bool successGet = Z3_get_numeral_int(builder->ctx, counter, &val);
+          Z3_inc_ref(builder->ctx, arrayElementExpr);
+          assert(Z3_get_ast_kind(builder->ctx, arrayElementExpr) == Z3_NUMERAL_AST &&
+                 "Evaluated expression has wrong sort");
+          int arrayElementValue = 0;
+          bool successGet = Z3_get_numeral_int(builder->ctx, arrayElementExpr, &arrayElementValue);
           assert(successGet && "failed to get value back");
-          data.push_back(val);
-          Z3_dec_ref(builder->ctx, counter);
+          data.push_back(arrayElementValue);
+          Z3_dec_ref(builder->ctx, arrayElementExpr);
         }
-
         values.push_back(data);
       }
 
