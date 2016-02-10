@@ -446,7 +446,7 @@ Z3ASTHandle Z3Builder::getInitialArray(const Array *root) {
   bool hashed = _arr_hash.lookupArrayExpr(root, array_expr);
 
   if (!hashed) {
-    // STP uniques arrays by name, so we make sure the name is unique by
+    // Unique arrays by name, so we make sure the name is unique by
     // including the address.
     char buf[32];
     unsigned const addrlen =
@@ -460,8 +460,8 @@ Z3ASTHandle Z3Builder::getInitialArray(const Array *root) {
     array_expr = buildArray(buf, root->getDomain(), root->getRange());
 
     if (root->isConstantArray()) {
-      // FIXME: Flush the concrete values into STP. Ideally we would do this
-      // using assertions, which is much faster, but we need to fix the caching
+      // FIXME: Flush the concrete values into Z3. Ideally we would do this
+      // using assertions, which might be faster, but we need to fix the caching
       // to work correctly in that case.
       for (unsigned i = 0, e = root->size; i != e; ++i) {
         Z3ASTHandle prev = array_expr;

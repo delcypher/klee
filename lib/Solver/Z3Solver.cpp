@@ -156,10 +156,10 @@ bool Z3SolverImpl::computeInitialValues(
   ++stats::queries;
   ++stats::queryCounterexamples;
 
-  Z3ASTHandle stp_e = Z3ASTHandle(builder->construct(query.expr), builder->ctx);
+  Z3ASTHandle z3QueryExpr = Z3ASTHandle(builder->construct(query.expr), builder->ctx);
 
   runStatusCode =
-      runAndGetCex(builder, the_solver, stp_e, objects, values, hasSolution);
+      runAndGetCex(builder, the_solver, z3QueryExpr, objects, values, hasSolution);
 
   Z3_solver_dec_ref(builder->ctx, the_solver);
 
