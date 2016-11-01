@@ -1,0 +1,7 @@
+LEVEL := ../
+
+include $(LEVEL)/Makefile.cmake.bitcode.config
+
+ARCHIVE_NAME=kleeRuntimePOSIX
+
+include $(LEVEL)/Makefile.cmake.bitcode.rules

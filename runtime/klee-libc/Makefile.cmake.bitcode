@@ -1,0 +1,16 @@
+LEVEL := ../
+
+include $(LEVEL)/Makefile.cmake.bitcode.config
+
+# Prevent glibc from inlining some definitions
+# of builtins
+LLVMCC.Flags += -D__NO_INLINE__
+
+# FIXME: This is a horrible hack
+ifeq ($(USE_MODULE_INSTEAD_OF_BCA),1)
+	MODULE_NAME=klee-libc
+else
+	ARCHIVE_NAME=klee-libc
+endif
+
+include $(LEVEL)/Makefile.cmake.bitcode.rules

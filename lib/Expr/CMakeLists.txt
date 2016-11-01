@@ -1,0 +1,15 @@
+klee_add_component(kleaverExpr
+	ArrayCache.cpp
+	Assigment.cpp
+	Constraints.cpp
+	ExprBuilder.cpp
+	Expr.cpp
+	ExprEvaluator.cpp
+	ExprPPrinter.cpp
+	ExprSMTLIBPrinter.cpp
+	ExprUtil.cpp
+	ExprVisitor.cpp
+	Lexer.cpp
+	Parser.cpp
+	Updates.cpp
+)
