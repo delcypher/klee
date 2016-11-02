@@ -319,10 +319,35 @@ endif()
 ################################################################################
 # TCMalloc support
 ################################################################################
-check_include_file_cxx(gperftools/malloc_extension.h HAVE_GPERFTOOLS_MALLOC_EXTENSION_H)
-if (${HAVE_GPERFTOOLS_MALLOC_EXTENSION_H})
-  # FIXME: We should check the library exists and that it can be linked against too!
-  list(APPEND KLEE_COMPONENT_EXTRA_LIBRARIES tcmalloc_minimal)
+OPTION(ENABLE_TCMALLOC "Enable TCMalloc support" OFF)
+if (ENABLE_TCMALLOC)
+  message(STATUS "TCMalloc support enabled")
+  set(TCMALLOC_HEADER "gperftools/malloc_extension.h")
+  check_include_file_cxx("${TCMALLOC_HEADER}" HAVE_GPERFTOOLS_MALLOC_EXTENSION_H)
+  if (${HAVE_GPERFTOOLS_MALLOC_EXTENSION_H})
+    find_library(TCMALLOC_LIBRARIES
+      NAMES tcmalloc tcmalloc_minimal
+      DOC "TCMalloc libraries"
+    )
+    if (NOT TCMALLOC_LIBRARIES)
+      message(FATAL_ERROR
+        "Found \"${TCMALLOC_HEADER}\" but could not find library")
+    endif()
+    list(APPEND KLEE_COMPONENT_EXTRA_LIBRARIES ${TCMALLOC_LIBRARIES})
+    if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU"))
+      # TCMalloc's documentation says its safest to pass these flags when
+      # building with gcc because gcc can optimize assuming its using its own
+      # malloc.
+      klee_component_add_cxx_flag(-fno-builtin-malloc REQUIRED)
+      klee_component_add_cxx_flag(-fno-builtin-calloc REQUIRED)
+      klee_component_add_cxx_flag(-fno-builtin-realloc REQUIRED)
+      klee_component_add_cxx_flag(-fno-builtin-free REQUIRED)
+    endif()
+  else()
+    message(FATAL_ERROR "Can't find \"${TCMALLOC_HEADER}\"")
+  endif()
+else()
+  message(STATUS "TCMalloc support disabled")
 endif()
 
 ################################################################################
