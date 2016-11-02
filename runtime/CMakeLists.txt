@@ -18,9 +18,9 @@ endif()
 # klee-libc and the POSIX runtime are always bitcode archives.
 if ("${LLVM_PACKAGE_VERSION}" VERSION_EQUAL "3.3" OR
     "${LLVM_PACKAGE_VERSION}" VERSION_GREATER "3.3")
-  set (USE_RUNTIME_BINARY_TYPE_HACK 1)
+  set(USE_RUNTIME_BINARY_TYPE_HACK 1)
 else()
-  set (USE_RUNTIME_BINARY_TYPE_HACK 0)
+  set(USE_RUNTIME_BINARY_TYPE_HACK 0)
 endif()
 
 if (ENABLE_POSIX_RUNTIME)
@@ -41,7 +41,7 @@ configure_file("Makefile.cmake.bitcode.rules" "Makefile.cmake.bitcode.rules" COP
 
 # Makefile for root runtime directory
 # Copy over makefiles for libraries
-set(BITCODE_LIBRARIES "Intrinsic" "klee-libc") # TODO add others
+set(BITCODE_LIBRARIES "Intrinsic" "klee-libc")
 if (ENABLE_POSIX_RUNTIME)
   list(APPEND BITCODE_LIBRARIES "POSIX")
 endif()
@@ -102,4 +102,30 @@ ExternalProject_Add(BuildKLEERuntimes
 # FIXME: Invoke `make clean` in the bitcode build system
 # when the `clean` target is invoked.
 
-# FIXME: Install the runtime
+###############################################################################
+# Runtime install
+###############################################################################
+set(RUNTIME_FILES_TO_INSTALL)
+
+# This is quite fragile and depends on knowledge in the bitcode
+# build system. Hopefully it won't change very often though.
+
+# FIXME: This hack needs to die!
+if (USE_RUNTIME_BINARY_TYPE_HACK)
+  list(APPEND RUNTIME_FILES_TO_INSTALL
+    "${KLEE_RUNTIME_DIRECTORY}/kleeRuntimeIntrinsic.bc"
+    "${KLEE_RUNTIME_DIRECTORY}/klee-libc.bc")
+else()
+  list(APPEND RUNTIME_FILES_TO_INSTALL
+    "${KLEE_RUNTIME_DIRECTORY}/libkleeRuntimeIntrinsic.bca"
+    "${KLEE_RUNTIME_DIRECTORY}/libklee-libc.bca")
+endif()
+
+if (ENABLE_POSIX_RUNTIME)
+  list(APPEND RUNTIME_FILES_TO_INSTALL
+    "${KLEE_RUNTIME_DIRECTORY}/libkleeRuntimePOSIX.bca")
+endif()
+
+install(FILES
+  ${RUNTIME_FILES_TO_INSTALL}
+  DESTINATION "${KLEE_INSTALL_RUNTIMR_DIR}")
