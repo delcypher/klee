@@ -447,7 +447,7 @@ if (HAVE_SELINUX_SELINUX_H)
   )
   if (SELINUX_SECURITY_CTX_NO_CONST)
     message(STATUS "security_context_t is char*")
-    set(KLEE_SELINUX_CTX_CONST "")
+    set(KLEE_SELINUX_CTX_CONST " ")
   else()
     check_prototype_definition(setcon
       "int setcon(const char* context)"
