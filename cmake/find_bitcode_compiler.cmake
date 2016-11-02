@@ -10,7 +10,7 @@ find_program(
 if (LLVMCC)
   message(STATUS "Found ${LLVMCC}")
 else()
-  message(ERROR "Failed to find C bitcode compiler")
+  message(FATAL_ERROR "Failed to find C bitcode compiler")
 endif()
 
 find_program(
