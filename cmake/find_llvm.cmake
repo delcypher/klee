@@ -50,22 +50,44 @@ else()
 
   # Get LLVM version
   _run_llvm_config(LLVM_PACKAGE_VERSION "--version")
+  # Try x.y.z patern
   set(_llvm_version_regex "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
-  string(REGEX REPLACE
-    "${_llvm_version_regex}"
-    "\\1"
-    LLVM_VERSION_MAJOR
-    "${LLVM_PACKAGE_VERSION}")
-  string(REGEX REPLACE
-    "${_llvm_version_regex}"
-    "\\2"
-    LLVM_VERSION_MINOR
-    "${LLVM_PACKAGE_VERSION}")
-  string(REGEX REPLACE
-    "${_llvm_version_regex}"
-    "\\3"
-    LLVM_VERSION_PATCH
-    "${LLVM_PACKAGE_VERSION}")
+  if ("${LLVM_PACKAGE_VERSION}" MATCHES "${_llvm_version_regex}")
+    string(REGEX REPLACE
+      "${_llvm_version_regex}"
+      "\\1"
+      LLVM_VERSION_MAJOR
+      "${LLVM_PACKAGE_VERSION}")
+    string(REGEX REPLACE
+      "${_llvm_version_regex}"
+      "\\2"
+      LLVM_VERSION_MINOR
+      "${LLVM_PACKAGE_VERSION}")
+    string(REGEX REPLACE
+      "${_llvm_version_regex}"
+      "\\3"
+      LLVM_VERSION_PATCH
+      "${LLVM_PACKAGE_VERSION}")
+  else()
+    # try x.y pattern
+    set(_llvm_version_regex "^([0-9]+)\\.([0-9]+)$")
+    if ("${LLVM_PACKAGE_VERSION}" MATCHES "${_llvm_version_regex}")
+      string(REGEX REPLACE
+        "${_llvm_version_regex}"
+        "\\1"
+        LLVM_VERSION_MAJOR
+        "${LLVM_PACKAGE_VERSION}")
+    string(REGEX REPLACE
+      "${_llvm_version_regex}"
+      "\\2"
+      LLVM_VERSION_MINOR
+      "${LLVM_PACKAGE_VERSION}")
+    set(LLVM_VERSION_PATCH 0)
+    else()
+      message(FATAL_ERROR
+        "Failed to parse LLVM version from \"${LLVM_PACKAGE_VERSION}\"")
+    endif()
+  endif()
 
   set(LLVM_DEFINITIONS "")
   _run_llvm_config(_llvm_cpp_flags "--cppflags")
