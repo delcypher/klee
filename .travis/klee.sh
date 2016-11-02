@@ -133,6 +133,7 @@ if [ "X${USE_CMAKE}" == "X1" ]; then
   # Compute CMake build type
   CXXFLAGS="${COVERAGE_FLAGS}" \
   cmake \
+    -DLLVM_CONFIG_BINARY="/usr/lib/llvm-${LLVM_VERSION}/bin/llvm-config" \
     -DLLVMCC="${KLEE_CC}" \
     -DLLVMCXX="${KLEE_CXX}" \
     ${KLEE_STP_CONFIGURE_OPTION} \
