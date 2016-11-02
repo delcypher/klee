@@ -145,6 +145,7 @@ if [ "X${USE_CMAKE}" == "X1" ]; then
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
     ${KLEE_ASSERTS_OPTION} \
     -DENABLE_TESTS=TRUE \
+    -DLIT_ARGS="-v" \
     ${KLEE_SRC} && make
 else
   # Build KLEE
