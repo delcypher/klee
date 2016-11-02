@@ -321,6 +321,35 @@ if (${HAVE_GPERFTOOLS_MALLOC_EXTENSION_H})
 endif()
 
 ################################################################################
+# Detect libcap
+################################################################################
+check_include_file("sys/capability.h" HAVE_SYS_CAPABILITY_H)
+if (HAVE_SYS_CAPABILITY_H)
+  find_library(LIBCAP_LIBRARIES
+    NAMES cap
+    DOC "libcap library"
+  )
+  if (NOT LIBCAP_LIBRARIES)
+    message(FATAL_ERROR "Found \"sys/capability.h\" but could not find libcap")
+  endif()
+else()
+  set(LIBCAP_LIBRARIES "")
+endif()
+
+################################################################################
+# Detect libutil
+################################################################################
+check_include_file("pty.h" HAVE_PTY_H)
+if (HAVE_PTY_H)
+  find_library(LIBUTIL_LIBRARIES
+    NAMES util
+    DOC "libutil library. Typically part of glibc")
+  if (NOT LIBCAP_LIBRARIES)
+    message(FATAL_ERROR "Found \"pty.h\" but could not find libutil")
+  endif()
+endif()
+
+################################################################################
 # Miscellaneous header file detection
 ################################################################################
 check_function_exists(mallinfo HAVE_MALLINFO) # FIXME: should test CXX compiler not C
@@ -346,7 +375,6 @@ set(STDC_HEADERS 1) # HACK
 # FIXME: This is needed by the runtime not KLEE itself so we are testing the wrong
 # compiler.
 check_include_file("selinux/selinux.h" HAVE_SELINUX_SELINUX_H)
-check_include_file("sys/capability.h" HAVE_SYS_CAPABILITY_H)
 check_include_file("sys/acl.h" HAVE_SYS_ACL_H)
 if (HAVE_SELINUX_SELINUX_H)
   set(HAVE_SELINUX 1)
