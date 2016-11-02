@@ -222,6 +222,10 @@ if (USE_CXX11)
   # Set globally because it is unlikely we would want to compile
   # using mixed C++ versions.
   add_global_cxx_flag("-std=c++11" REQUIRED)
+else()
+  # This is needed because with GCC 6 the default changed from gnu++98 to
+  # gnu++14.
+  add_global_cxx_flag("-std=gnu++98" REQUIRED)
 endif()
 
 ################################################################################
