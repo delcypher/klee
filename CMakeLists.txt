@@ -432,27 +432,38 @@ set(STDC_HEADERS 1) # HACK
 check_include_file("selinux/selinux.h" HAVE_SELINUX_SELINUX_H)
 check_include_file("sys/acl.h" HAVE_SYS_ACL_H)
 if (HAVE_SELINUX_SELINUX_H)
+  message(STATUS "SELinux support enabled")
   set(HAVE_SELINUX 1)
-  # FIXME: I haven't tested this at all!
-
   # Test what function signature we need to use for SELinux. The signatures
   # have changed between 2.2 and 2.3. In particular, the type of the "security
   # context" parameter was changed from char * to const char *, with this
   # patch: [PATCH] Get rid of security_context_t and fix const declarations.
   # [http://www.spinics.net/lists/selinux/msg14827.html]
   check_prototype_definition(setcon
-    "setcon(char* context)"
-    "int"
+    "int setcon(char* context)"
+    "0"
     "selinux/selinux.h"
     SELINUX_SECURITY_CTX_NO_CONST
   )
   if (SELINUX_SECURITY_CTX_NO_CONST)
+    message(STATUS "security_context_t is char*")
     set(KLEE_SELINUX_CTX_CONST "")
   else()
-    # FIXME: We aren't actually checking if this works
-    set(KLEE_SELINUX_CTX_CONST "const")
+    check_prototype_definition(setcon
+      "int setcon(const char* context)"
+      "0"
+      "selinux/selinux.h"
+      SELINUX_SECURITY_CTX_WITH_CONST
+    )
+    if (SELINUX_SECURITY_CTX_WITH_CONST)
+      message(STATUS "security_context_t is const char*")
+      set(KLEE_SELINUX_CTX_CONST "const")
+    else()
+      message(FATAL_ERROR "Failed to determine function signature for \"setcon\"")
+    endif()
   endif()
 else()
+  message(STATUS "SELinux support disabled")
   set(HAVE_SELINUX 0)
 endif()
 
