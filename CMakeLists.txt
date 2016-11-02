@@ -349,7 +349,7 @@ if (HAVE_PTY_H)
   find_library(LIBUTIL_LIBRARIES
     NAMES util
     DOC "libutil library. Typically part of glibc")
-  if (NOT LIBCAP_LIBRARIES)
+  if (NOT LIBUTIL_LIBRARIES)
     message(FATAL_ERROR "Found \"pty.h\" but could not find libutil")
   endif()
 endif()
