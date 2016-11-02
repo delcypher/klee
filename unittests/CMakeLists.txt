@@ -23,7 +23,7 @@ endforeach()
 
 # Build GTest as part of our project
 # FIXME: Prevent GTest from adding to our install target.
-add_subdirectory(${GTEST_SRC_DIR} "${CMAKE_BINARY_DIR}/gtest_build")
+add_subdirectory(${GTEST_SRC_DIR} "${CMAKE_CURRENT_BINARY_DIR}/gtest_build")
 
 set(CMAKE_CXX_FLAGS "${_OLD_CMAKE_CXX_FLAGS}") # Restore the flags
 
@@ -36,9 +36,17 @@ define_property(GLOBAL
   FULL_DOCS "KLEE unit tests"
 )
 
+set(GTEST_INCLUDE_DIR "${GTEST_SRC_DIR}/include")
+
+if (NOT IS_DIRECTORY "${GTEST_INCLUDE_DIR}")
+  message(FATAL_ERROR
+    "Cannot find GTest include directory \"${GTEST_INCLUDE_DIR}\"")
+endif()
+
 function(add_klee_unit_test target_name)
   add_executable(${target_name} ${ARGN})
   target_link_libraries(${target_name} PRIVATE gtest_main)
+  target_include_directories(${target_name} BEFORE PRIVATE "${GTEST_INCLUDE_DIR}")
   set_target_properties(${target_name}
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/unittests/"
