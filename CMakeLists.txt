@@ -110,6 +110,7 @@ include(CheckFunctionExists)
 include(CheckPrototypeDefinition)
 include("${CMAKE_SOURCE_DIR}/cmake/string_to_list.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/klee_component_add_cxx_flag.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/add_global_flag.cmake")
 
 ################################################################################
 # Compiler flags for KLEE components
@@ -225,7 +226,7 @@ endif()
 ################################################################################
 # Warnings
 ################################################################################
-include(${CMAKE_SOURCE_DIR}/cmake/cxx_warnings.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/compiler_warnings.cmake)
 
 ################################################################################
 # Solvers
