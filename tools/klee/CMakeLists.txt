@@ -2,16 +2,25 @@ add_executable(klee
 	main.cpp
 )
 
-klee_get_llvm_libs(LLVM_LIBS
+# FIXME: This shouldn't be done here. Instead the KLEE libraries
+# should declare their LLVM dependencies.
+set(LLVM_COMPONENTS
 	bitreader
 	bitwriter
 	engine
 	ipo
-	irreader
 	jit
 	linker
 	support
 )
+
+if ("${LLVM_PACKAGE_VERSION}" VERSION_EQUAL "3.3" OR
+    "${LLVM_PACKAGE_VERSION}" VERSION_GREATER "3.3")
+  list(APPEND LLVM_COMPONENTS irreader)
+endif()
+
+klee_get_llvm_libs(LLVM_LIBS ${LLVM_COMPONENTS})
+
 set(KLEE_LIBS kleeCore kleeBasic kleeModule kleaverSolver kleaverExpr kleeSupport)
 
 target_link_libraries(klee ${KLEE_LIBS} ${LLVM_LIBS})
