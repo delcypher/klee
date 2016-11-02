@@ -105,6 +105,7 @@ else()
 
   _run_llvm_config(LLVM_LIBRARY_DIRS "--libdir")
   _run_llvm_config(LLVM_TOOLS_BINARY_DIR "--bindir")
+  _run_llvm_config(TARGET_TRIPLE "--host-target")
 
   # Provide function to map LLVM components to libraries.
   function(klee_get_llvm_libs OUTPUT_VAR)

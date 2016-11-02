@@ -4,7 +4,7 @@ set(LLVM_TOOLS_DIR "${LLVM_TOOLS_BINARY_DIR}")
 # is shared by both build systems.
 set(LLVMCC "${LLVMCC} -I${CMAKE_SOURCE_DIR}/include")
 set(LLVMCXX "${LLVMCXX} -I${CMAKE_SOURCE_DIR}/include")
-set(TARGET_TRIPLE "FIXME") # FIXME: Set this if this is actually needed!
+set(TARGET_TRIPLE "${TARGET_TRIPLE}")
 if (ENABLE_KLEE_UCLIBC)
   set(ENABLE_UCLIBC 1)
 else()
