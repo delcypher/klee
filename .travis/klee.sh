@@ -68,7 +68,7 @@ if [ "X${USE_CMAKE}" == "X1" ]; then
     echo "Setting CMake configuration option for ${solver}"
     case ${solver} in
     STP)
-      KLEE_STP_CONFIGURE_OPTION="-DENABLE_SOLVER_STP=TRUE -DSTP_DIR={BUILD_DIR}/stp/build"
+      KLEE_STP_CONFIGURE_OPTION="-DENABLE_SOLVER_STP=TRUE -DSTP_DIR=${BUILD_DIR}/stp/build"
       ;;
     Z3)
       echo "Z3"
@@ -76,7 +76,10 @@ if [ "X${USE_CMAKE}" == "X1" ]; then
       ;;
     metaSMT)
       echo "metaSMT"
-      KLEE_METASMT_CONFIGURE_OPTION="-DENABLE_SOLVER_METASMT=TRUE"
+      if [ "X${METASMT_DEFAULT}" == "X" ]; then
+        METASMT_DEFAULT=STP
+      fi
+      KLEE_METASMT_CONFIGURE_OPTION="-DENABLE_SOLVER_METASMT=TRUE -DmetaSMT_DIR=${BUILD_DIR}/metaSMT/build -DMETASMT_DEFAULT_BACKEND=${METASMT_DEFAULT}"
       ;;
     *)
       echo "Unknown solver ${solver}"

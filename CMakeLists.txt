@@ -157,13 +157,6 @@ else()
   unset(ENABLE_KLEE_DEBUG) # for config.h
 endif()
 
-if (NOT LLVM_ENABLE_EH)
-  klee_component_add_cxx_flag("-fno-exceptions" REQUIRED)
-endif()
-
-if (NOT LLVM_ENABLE_RTTI)
-  klee_component_add_cxx_flag("-fno-rtti" REQUIRED)
-endif()
 
 list(APPEND KLEE_COMPONENT_CXX_DEFINES ${LLVM_DEFINITIONS})
 list(APPEND KLEE_COMPONENT_EXTRA_INCLUDE_DIRS ${LLVM_INCLUDE_DIRS})
@@ -304,7 +297,7 @@ endif()
 option(ENABLE_SOLVER_METASMT "Enable metaSMT solver support" OFF)
 if (ENABLE_SOLVER_METASMT)
   set(ENABLE_METASMT 1)
-  message(FATAL_ERROR "metaSMT support not implemented")
+  include(${CMAKE_SOURCE_DIR}/cmake/find_metasmt.cmake)
 else()
   set(ENABLE_METASMT 0) # For config.h
 endif()
@@ -313,6 +306,27 @@ if ((NOT ${ENABLE_Z3}) AND (NOT ${ENABLE_STP}) AND (NOT ${ENABLE_METASMT}))
   message(FATAL_ERROR "No solver was detected. At least one solver is required.")
 endif()
 
+###############################################################################
+# Exception handling
+###############################################################################
+if (NOT LLVM_ENABLE_EH)
+  if (ENABLE_SOLVER_METASMT)
+    message(WARNING "Not disabling exceptions because metaSMT uses them")
+  else()
+    klee_component_add_cxx_flag("-fno-exceptions" REQUIRED)
+  endif()
+endif()
+
+###############################################################################
+# RTTI
+###############################################################################
+if (NOT LLVM_ENABLE_RTTI)
+  if (ENABLE_SOLVER_METASMT)
+    message(WARNING "Not RTTI because metaSMT uses them")
+  else()
+    klee_component_add_cxx_flag("-fno-rtti" REQUIRED)
+  endif()
+endif()
 
 ################################################################################
 # Support for compressed logs
