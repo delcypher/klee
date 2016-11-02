@@ -73,6 +73,9 @@ RUN cd ${BUILD_DIR} && ${KLEE_SRC}/.travis/solvers.sh
 RUN cd ${BUILD_DIR} && mkdir test-utils && cd test-utils && \
     ${KLEE_SRC}/.travis/testing-utils.sh
 
+# FIXME: All these hacks need to be removed. Once we no longer
+# need to support KLEE's old build system they can be removed.
+
 # FIXME: This is a nasty hack so KLEE's configure and build finds
 # LLVM's headers file, libraries and tools
 RUN sudo mkdir -p /usr/lib/llvm-${LLVM_VERSION}/build/Release/bin && \
@@ -114,12 +117,16 @@ RUN mv /etc/sudoers.bak /etc/sudoers && \
 USER klee
 
 # Add KLEE binary directory to PATH
-RUN echo 'export PATH=$PATH:'${BUILD_DIR}'/klee/Release+Asserts/bin' >> /home/klee/.bashrc
+RUN [ "X${USE_CMAKE}" != "X1" ] && \
+  (echo 'export PATH=$PATH:'${BUILD_DIR}'/klee/Release+Asserts/bin' >> /home/klee/.bashrc) || \
+  (echo 'export PATH=$PATH:'${BUILD_DIR}'/klee/bin' >> /home/klee/.bashrc)
 
 # Link klee to /usr/bin so that it can be used by docker run
 USER root
-RUN for exec in ${BUILD_DIR}/klee/Release+Asserts/bin/* ; do ln -s ${exec} /usr/bin/`basename ${exec}`; done
+RUN [ "X${USE_CMAKE}" != "X1" ] && \
+  (for executable in ${BUILD_DIR}/klee/Release+Asserts/bin/* ; do ln -s ${executable} /usr/bin/`basename ${executable}`; done) || \
+  (for executable in ${BUILD_DIR}/klee/bin/* ; do ln -s ${executable} /usr/bin/`basename ${executable}`; done)
 
 # Link klee to the libkleeRuntest library needed by docker run
-RUN ln -s ${BUILD_DIR}/klee/Release+Asserts/lib/libkleeRuntest.so /usr/lib/libkleeRuntest.so.1.0
+RUN [ "X${USE_CMAKE}" != "X1" ] && (ln -s ${BUILD_DIR}/klee/Release+Asserts/lib/libkleeRuntest.so /usr/lib/libkleeRuntest.so.1.0) || echo "Skipping hack"
 USER klee
