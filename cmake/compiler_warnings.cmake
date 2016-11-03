@@ -1,11 +1,34 @@
+#===------------------------------------------------------------------------===#
+#
+#                     The KLEE Symbolic Virtual Machine
+#
+# This file is distributed under the University of Illinois Open Source
+# License. See LICENSE.TXT for details.
+#
+#===------------------------------------------------------------------------===#
+
+###############################################################################
+# Compiler warnings
+#
+# NOTE: All these variables should be lists of flags and NOT a single string.
+###############################################################################
 # FIXME: -Wunused-parameter fires a lot so for now suppress it.
-set(GCC_AND_CLANG_WARNINGS_CXX "-Wall" "-Wextra" "-Wno-unused-parameter")
-set(GCC_AND_CLANG_WARNINGS_C "-Wall" "-Wextra" "-Wno-unused-parameter")
+set(GCC_AND_CLANG_WARNINGS_CXX
+  "-Wall"
+  "-Wextra"
+  "-Wno-unused-parameter")
+set(GCC_AND_CLANG_WARNINGS_C
+  "-Wall"
+  "-Wextra"
+  "-Wno-unused-parameter")
 set(GCC_ONLY_WARNINGS_C "")
 set(GCC_ONLY_WARNINGS_CXX "")
 set(CLANG_ONLY_WARNINGS_C "")
 set(CLANG_ONLY_WARNINGS_CXX "")
 
+###############################################################################
+# Check which warning flags are supported and use them globally
+###############################################################################
 set(CXX_WARNING_FLAGS_TO_CHECK "")
 set(C_WARNING_FLAGS_TO_CHECK "")
 
@@ -40,6 +63,9 @@ foreach (flag ${C_WARNING_FLAGS_TO_CHECK})
   add_global_c_flag("${flag}")
 endforeach()
 
+###############################################################################
+# Warnings as errors
+###############################################################################
 option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 if (WARNINGS_AS_ERRORS)
   if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU"))

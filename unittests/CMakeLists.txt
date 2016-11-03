@@ -1,3 +1,12 @@
+#===------------------------------------------------------------------------===#
+#
+#                     The KLEE Symbolic Virtual Machine
+#
+# This file is distributed under the University of Illinois Open Source
+# License. See LICENSE.TXT for details.
+#
+#===------------------------------------------------------------------------===#
+
 # Build GTest. We don't use a pre-built version due to
 # https://github.com/google/googletest/blob/master/googletest/docs/FAQ.md#why-is-it-not-recommended-to-install-a-pre-compiled-copy-of-google-test-for-example-into-usrlocal
 set(GTEST_SRC_DIR

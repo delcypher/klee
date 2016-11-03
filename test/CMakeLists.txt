@@ -1,3 +1,12 @@
+#===------------------------------------------------------------------------===#
+#
+#                     The KLEE Symbolic Virtual Machine
+#
+# This file is distributed under the University of Illinois Open Source
+# License. See LICENSE.TXT for details.
+#
+#===------------------------------------------------------------------------===#
+
 set(KLEE_TOOLS_DIR "${CMAKE_BINARY_DIR}/bin")
 set(LLVM_TOOLS_DIR "${LLVM_TOOLS_BINARY_DIR}")
 # FIXME: Do this to avoid changing the template file that

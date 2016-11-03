@@ -1,3 +1,14 @@
+#===--------------------------------------------------------*- Makefile -*--===#
+#
+#                     The KLEE Symbolic Virtual Machine
+#
+# This file is distributed under the University of Illinois Open Source
+# License. See LICENSE.TXT for details.
+#
+#===------------------------------------------------------------------------===#
+# This files defines the rules used for the bitcode build system. They are
+# inspired by LLVM's old Makefile build system.
+#===------------------------------------------------------------------------===#
 .PHONY: all build_at_level clean debug_vars
 
 CURRENT_DIR:= $(shell pwd)

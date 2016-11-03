@@ -1,15 +1,23 @@
-###############################################################################
-# This file provides multiple methods to detect LLVM.
-# * llvm-config executable. This method is portable
-#   across LLVM build systems (i.e. works if LLVM was
-#   built with autoconf/Makefile or with CMake).
+#===------------------------------------------------------------------------===#
 #
-# * find_package(LLVM CONFIG). This method only works
-#   if LLVM was built with CMake or with a recent-ish
-#   version of LLVM where the autoconf/Makefile build
-#   system knows how to generate the `LLVMConfig.cmake`
-#   file.
-###############################################################################
+#                     The KLEE Symbolic Virtual Machine
+#
+# This file is distributed under the University of Illinois Open Source
+# License. See LICENSE.TXT for details.
+#
+#===------------------------------------------------------------------------===#
+#
+# This file provides multiple methods to detect LLVM.
+#
+# * llvm-config executable. This method is portable across LLVM build systems
+# (i.e. works if LLVM was built with autoconf/Makefile or with CMake).
+#
+# * find_package(LLVM CONFIG). This method only works if LLVM was built with
+# CMake or with LLVM >= 3.5 when built with the autoconf/Makefile build system
+# This method relies on the `LLVMConfig.cmake` file generated to be generated
+# by LLVM's build system.
+#
+#===------------------------------------------------------------------------===#
 
 option(USE_CMAKE_FIND_PACKAGE_LLVM "Use find_package(LLVM CONFIG) to find LLVM" OFF)
 
@@ -33,6 +41,12 @@ else()
   find_program(LLVM_CONFIG_BINARY
     NAMES llvm-config)
   message(STATUS "LLVM_CONFIG_BINARY: ${LLVM_CONFIG_BINARY}")
+
+  if (NOT LLVM_CONFIG_BINARY)
+    message(FATAL_ERROR
+      "Failed to find llvm-config.\n"
+      "Try passing -DLLVM_CONFIG_BINARY=/path/to/llvm-config to cmake")
+  endif()
 
   function(_run_llvm_config output_var)
     set(_command "${LLVM_CONFIG_BINARY}" ${ARGN})

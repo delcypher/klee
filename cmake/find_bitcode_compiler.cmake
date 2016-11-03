@@ -1,4 +1,18 @@
-# Try to find compilers to build LLVM bitcode.
+#===------------------------------------------------------------------------===#
+#
+#                     The KLEE Symbolic Virtual Machine
+#
+# This file is distributed under the University of Illinois Open Source
+# License. See LICENSE.TXT for details.
+#
+#===------------------------------------------------------------------------===#
+#
+# This file tries to find compilers to build LLVM bitcode.
+# It is implicitly dependent on `find_llvm.cmake` already being run in the
+# same scope.
+#
+#===------------------------------------------------------------------------===#
+
 message(STATUS "Looking for bitcode compilers")
 
 find_program(

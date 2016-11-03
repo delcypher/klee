@@ -1,3 +1,12 @@
+#===------------------------------------------------------------------------===#
+#
+#                     The KLEE Symbolic Virtual Machine
+#
+# This file is distributed under the University of Illinois Open Source
+# License. See LICENSE.TXT for details.
+#
+#===------------------------------------------------------------------------===#
+
 function(klee_add_component target_name)
   add_library(${target_name} ${ARGN})
   # Use of `PUBLIC` means these will propagate to targets that use this component.

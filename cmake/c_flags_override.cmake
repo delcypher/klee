@@ -1,6 +1,17 @@
+#===------------------------------------------------------------------------===#
+#
+#                     The KLEE Symbolic Virtual Machine
+#
+# This file is distributed under the University of Illinois Open Source
+# License. See LICENSE.TXT for details.
+#
+#===------------------------------------------------------------------------===#
+#
 # This file overrides the default compiler flags for CMake's built-in
-# configurations (CMAKE_BUILD_TYPE). Most compiler flags should not be set here.
-# The main purpose is to make sure ``-DNDEBUG`` is never set by default.
+# configurations (CMAKE_BUILD_TYPE). Most compiler flags should not be set
+# here.  The main purpose is to make sure ``-DNDEBUG`` is never set by default.
+#
+#===------------------------------------------------------------------------===#
 if (("${CMAKE_C_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_C_COMPILER_ID}" MATCHES "GNU"))
   # Taken from Modules/Compiler/GNU.cmake but -DNDEBUG is removed
   set(CMAKE_C_FLAGS_INIT "")
