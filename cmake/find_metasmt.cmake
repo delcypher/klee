@@ -7,7 +7,11 @@
 #
 #===------------------------------------------------------------------------===#
 
-find_package(metaSMT REQUIRED CONFIG)
+find_package(metaSMT CONFIG)
+if (NOT metaSMT_FOUND)
+  message(FATAL_ERROR "metaSMT not found. Try setting `-DmetaSMT_DIR=/path` where"
+    " `/path` is the directory containing `metaSMTConfig.cmake`")
+endif()
 message(STATUS "metaSMT_DIR: ${metaSMT_DIR}")
 list(APPEND KLEE_COMPONENT_EXTRA_INCLUDE_DIRS
   "${metaSMT_INCLUDE_DIR}" ${metaSMT_INCLUDE_DIRS})

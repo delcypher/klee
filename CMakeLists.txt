@@ -241,7 +241,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/compiler_warnings.cmake)
 
 # STP: Use CMake facility to detect. The user can pass `-DSTP_DIR=` to force
 # a particular directory.
-option(ENABLE_SOLVER_STP "Enable STP solver support" ON)
+option(ENABLE_SOLVER_STP "Enable STP solver support" OFF)
 if (ENABLE_SOLVER_STP)
   find_package(STP CONFIG)
   if (STP_FOUND)
@@ -262,9 +262,8 @@ if (ENABLE_SOLVER_STP)
     message(STATUS "STP_DIR: ${STP_DIR}")
     set(ENABLE_STP 1) # For config.h
   else()
-    message(STATUS "STP not found. Try setting `-DSTP_DIR=/path` where"
+    message(FATAL_ERROR "STP not found. Try setting `-DSTP_DIR=/path` where"
       " `/path` is the directory containing `STPConfig.cmake`")
-    set(ENABLE_STP 0) # For config.h
   endif()
 else()
   message(STATUS "STP solver support disabled")
@@ -272,7 +271,7 @@ else()
 endif()
 
 # Z3
-option(ENABLE_SOLVER_Z3 "Enable Z3 solver support" ON)
+option(ENABLE_SOLVER_Z3 "Enable Z3 solver support" OFF)
 if (ENABLE_SOLVER_Z3)
   find_package(Z3)
   if (Z3_FOUND)
@@ -294,8 +293,7 @@ if (ENABLE_SOLVER_Z3)
       message(STATUS "Z3_get_error_msg does not require context")
     endif()
   else()
-    message(STATUS "Z3 not found")
-    set(ENABLE_Z3 0) # For config.h
+    message(FATAL_ERROR "Z3 not found.")
   endif()
 else()
   message(STATUS "Z3 solver support disabled")
@@ -312,7 +310,12 @@ else()
 endif()
 
 if ((NOT ${ENABLE_Z3}) AND (NOT ${ENABLE_STP}) AND (NOT ${ENABLE_METASMT}))
-  message(FATAL_ERROR "No solver was detected. At least one solver is required.")
+  message(FATAL_ERROR "No solver was specified. At least one solver is required."
+    "You should enable a solver by passing one of more the following options"
+    " to cmake:\n"
+    "\"-DENABLE_STP=TRUE\"\n"
+    "\"-DENABLE_Z3=TRUE\"\n"
+    "\"-DENABLE_METASMT=TRUE\"")
 endif()
 
 ###############################################################################
@@ -332,6 +335,10 @@ endif()
 if (NOT LLVM_ENABLE_RTTI)
   if (ENABLE_SOLVER_METASMT)
     message(WARNING "Not RTTI because metaSMT uses them")
+    # FIXME: Should this be FATAL_ERROR rather than ERROR?
+    message(WARNING
+      "This build configuration is not supported and will likely not work."
+      "You should recompile LLVM with RTTI enabled.")
   else()
     klee_component_add_cxx_flag("-fno-rtti" REQUIRED)
   endif()
