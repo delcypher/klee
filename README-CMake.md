@@ -3,6 +3,16 @@
 KLEE now has a CMake build system which is intended to replace
 it's autoconf/Makefile based build system.
 
+## Useful top level targets
+
+* `check` - Build and run all tests.
+* `clean` - Clean the build tree. Note this won't clean the runtime build.
+* `docs` - Build documentation
+* `edit_cache` - Show cmake/ccmake/cmake-gui interface for chaning configure options.
+* `help` - Show list of top level targets
+* `integrationtests` - Run integration tests
+* `unittetss` - Build and run unittests
+
 ## Useful CMake variables
 
 These can be set by passing `-DVAR_NAME=VALUE` to the CMake invocation.
@@ -71,5 +81,3 @@ cmake -DCMAKE_BUILD_TYPE=Release /path/to/klee/src
 * `USE_CXX11` (BOOLEAN) - Use C++11.
 
 * `WARNINGS_AS_ERRORS` (BOOLEAN) - Treat warnings as errors when building KLEE.
-
-
