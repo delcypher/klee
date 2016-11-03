@@ -22,6 +22,10 @@ cmake -DCMAKE_BUILD_TYPE=Release /path/to/klee/src
 * `DOWNLOAD_LLVM_TESTING_TOOLS` (BOOLEAN) - Force downloading
    of LLVM testing tool sources.
 
+* `ENABLE_DOCS` (BOOLEAN) - Enable building documentation.
+
+* `ENABLE_DOXYGEN` (BOOLEAN) - Enable building doxygen documentation.
+
 * `ENABLE_INTEGRATION_TESTS` (BOOLEAN) - Enable KLEE integration tests.
 
 * `ENABLE_KLEE_ASSERTS` (BOOLEAN) - Enable assertions when building KLEE.

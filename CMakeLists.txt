@@ -660,6 +660,14 @@ else()
 endif()
 
 ################################################################################
+# Documentation
+################################################################################
+option(ENABLE_DOCS "Enable building documentation" ON)
+if (ENABLE_DOCS)
+  add_subdirectory(docs)
+endif()
+
+################################################################################
 # Miscellaneous install
 ################################################################################
 install(FILES include/klee/klee.h DESTINATION include/klee)
