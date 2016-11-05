@@ -502,21 +502,23 @@ endif()
 
 set(available_klee_runtime_build_types
   "Release"
+  "Release+Debug"
   "Release+Asserts"
+  "Release+Debug+Asserts"
   "Debug"
   "Debug+Asserts"
 )
 if (NOT KLEE_RUNTIME_BUILD_TYPE)
   message(STATUS "KLEE_RUNTIME_BUILD_TYPE is not set. Setting default")
   message(STATUS "The available runtime build types are: ${available_klee_runtime_build_types}")
-  set(KLEE_RUNTIME_BUILD_TYPE "Release+Asserts" CACHE String
+  set(KLEE_RUNTIME_BUILD_TYPE "Release+Debug+Asserts" CACHE String
     "Options are ${available_klee_runtime_build_types}"
     FORCE)
-    # Provide drop down menu options in cmake-gui
-    set_property(CACHE
-      KLEE_RUNTIME_BUILD_TYPE
-      PROPERTY STRINGS ${available_klee_runtime_build_types})
 endif()
+# Provide drop down menu options in cmake-gui
+set_property(CACHE
+  KLEE_RUNTIME_BUILD_TYPE
+  PROPERTY STRINGS ${available_klee_runtime_build_types})
 message(STATUS "KLEE_RUNTIME_BUILD_TYPE: ${KLEE_RUNTIME_BUILD_TYPE}")
 set(RUNTIME_CONFIGURATION "\"${KLEE_RUNTIME_BUILD_TYPE}\"") # For config.h
 

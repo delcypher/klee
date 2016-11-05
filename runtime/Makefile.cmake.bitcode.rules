@@ -47,6 +47,11 @@ ifeq ($(ASSERTIONS_ENABLED),0)
 LLVMCC.Flags += -DNDEBUG
 endif
 
+# Handle debug symbol flags
+ifneq ($(DEBUG_SYMBOLS_ENABLED),0)
+LLVMCC.Flags += -g
+endif
+
 ifdef DIRS
 # all directory recursion target
 all::
@@ -82,7 +87,7 @@ $(BC_FILES) : $(ADDITIONAL_BUILD_DEPS)
 
 # Pattern rule to build bitcode files
 $(LOCAL_BUILD_DIR)/%.bc : $(SRC_DIR)/%.c
-	@echo "LLVMCC $<"
+	@echo "LLVMCC ($(RUNTIME_CONFIG_STRING)) $<"
 	$(Verb) $(MKDIR) -p $(LOCAL_BUILD_DIR)
 	$(Verb) $(LLVMCC) $(LLVMCC.Flags) $(LLVMCC.Warnings) $< -c -o $@ -MP -MMD -MF $(LOCAL_BUILD_DIR)/$*.dep
 
@@ -140,16 +145,19 @@ debug_vars:
 	@echo "Makefile variables for debugging"
 	@echo "********************************************************************************"
 	@echo "ARCHIVE_FILE := $(ARCHIVE_FILE)"
+	@echo "ASSERTIONS_ENABLED := $(ASSERTIONS_ENABLED)"
 	@echo "BC_FILES := $(BC_FILES)"
 	@echo "BUILD_ROOT := $(BUILD_ROOT)"
 	@echo "C_SRCS := $(C_SRCS)"
-	@echo "CC.Warnings := $(CC.Warnings)"
 	@echo "CURRENT_DIR := $(CURRENT_DIR)"
+	@echo "DEBUG_SYMBOLS_ENABLED := $(DEBUG_SYMBOLS_ENABLED)"
+	@echo "IS_RELEASE := $(IS_RELEASE)"
 	@echo "LOCAL_BUILD_DIR := $(LOCAL_BUILD_DIR)"
 	@echo "LLVMCC := $(LLVMCC)"
 	@echo "LLVMCC.Flag := $(LLVMCC.Flags)"
 	@echo "LLVMCC.Warnings := $(LLVMCC.Warnings)"
 	@echo "MODULE_FILE := $(MODULE_FILE)"
 	@echo "ROOT_OBJ := $(ROOT_OBJ)"
+	@echo "RUNTIME_CONFIG_STRING := $(RUNTIME_CONFIG_STRING)"
 	@echo "SRC_DIR := $(SRC_DIR)"
 	@echo "VERBOSE := $(VERBOSE)"

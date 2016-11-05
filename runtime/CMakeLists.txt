@@ -8,17 +8,24 @@
 #===------------------------------------------------------------------------===#
 add_subdirectory(Runtest)
 
-if ("${RUNTIME_CONFIGURATION}" MATCHES "Release")
+if ("${KLEE_RUNTIME_BUILD_TYPE}" MATCHES "Release")
   set(RUNTIME_IS_RELEASE 1)
 else()
   set(RUNTIME_IS_RELEASE 0)
 endif()
 
-if ("${RUNTIME_CONFIGURATION}" MATCHES "Asserts")
+if ("${KLEE_RUNTIME_BUILD_TYPE}" MATCHES "Asserts")
   set(RUNTIME_HAS_ASSERTIONS 1)
 else()
   set(RUNTIME_HAS_ASSERTIONS 0)
 endif()
+
+if ("${KLEE_RUNTIME_BUILD_TYPE}" MATCHES "Debug")
+  set(RUNTIME_HAS_DEBUG_SYMBOLS 1)
+else()
+  set(RUNTIME_HAS_DEBUG_SYMBOLS 0)
+endif()
+
 
 # FIXME: This is a horrible hack that needs to die.
 # Things are very inconsistent. The runtime instrinsic
