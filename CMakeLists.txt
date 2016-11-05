@@ -251,6 +251,9 @@ include(${CMAKE_SOURCE_DIR}/cmake/compiler_warnings.cmake)
 option(ENABLE_SOLVER_STP "Enable STP solver support" OFF)
 if (ENABLE_SOLVER_STP)
   message(STATUS "STP solver support enabled")
+  # Although find_package() will set `STP_DIR` for us add it here so that
+  # is displayed in `ccmake` and `cmake-gui`.
+  set(STP_DIR "" CACHE PATH "Path to directory containing STPConfig.cmake")
   find_package(STP CONFIG)
   if (STP_FOUND)
     message(STATUS "Found STP version ${STP_VERSION}")
