@@ -538,6 +538,11 @@ set(KLEE_RUNTIME_DIRECTORY "${CMAKE_BINARY_DIR}/${KLEE_RUNTIME_BUILD_TYPE}/lib")
 option(ENABLE_POSIX_RUNTIME "Enable KLEE's POSIX runtime" OFF)
 if (ENABLE_POSIX_RUNTIME)
   message(STATUS "POSIX runtime enabled")
+  if (NOT ENABLE_KLEE_UCLIBC)
+    message(WARNING "Enabling POSIX runtime without klee-uclibc support."
+      "The runtime might not work without it. Pass `-DENABLE_KLEE_UCLIBC=ON`"
+      " to enable klee-uclibc support.")
+  endif()
 else()
   message(STATUS "POSIX runtime disabled")
 endif()
@@ -552,7 +557,9 @@ if (ENABLE_KLEE_UCLIBC)
   set(KLEE_UCLIBC_PATH "" CACHE PATH "Path to klee-uclibc root directory")
   if (NOT IS_DIRECTORY "${KLEE_UCLIBC_PATH}")
     message(FATAL_ERROR
-      "KLEE_UCLIBC_PATH (\"${KLEE_UCLIBC_PATH}\") is not a valid directory")
+      "KLEE_UCLIBC_PATH (\"${KLEE_UCLIBC_PATH}\") is not a valid directory.\n"
+      "Try passing -DKLEE_UCLIBC_PATH=<path> to cmake where <path> is the path"
+      " to the root of the klee-uclibc directory.")
   endif()
 
   # Find the C library bitcode archive
@@ -562,7 +569,7 @@ if (ENABLE_KLEE_UCLIBC)
     message(FATAL_ERROR
       "klee-uclibc library not found at \"${KLEE_UCLIBC_C_BCA}\"")
   endif()
-  message(STATUS "Find klee-uclibc library: \"${KLEE_UCLIBC_C_BCA}\"")
+  message(STATUS "Found klee-uclibc library: \"${KLEE_UCLIBC_C_BCA}\"")
   
   # Make a symlink to KLEE_UCLIBC_C_BCA so KLEE can find it where it
   # is expected.
