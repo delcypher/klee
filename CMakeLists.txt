@@ -435,20 +435,6 @@ check_function_exists(__ctype_b_loc HAVE_CTYPE_EXTERNALS) # FIXME: should test C
 check_include_file_cxx(malloc/malloc.h HAVE_MALLOC_MALLOC_H)
 check_function_exists(malloc_zone_statistics HAVE_MALLOC_ZONE_STATISTICS)
 
-# FIXME: Remove these. These macros don't seem to be used by the KLEE code base.
-# but are in KLEE's config.h template.
-check_include_file_cxx("inttypes.h" HAVE_INTTYPES_H)
-check_include_file_cxx("memory.h" HAVE_MEMORY_H)
-check_include_file_cxx("stdint.h" HAVE_STDINT_H)
-check_include_file_cxx("stdlib.h" HAVE_STDLIB_H)
-check_include_file_cxx("strings.h" HAVE_STRINGS_H)
-check_include_file_cxx("string.h" HAVE_STRING_H)
-check_include_file_cxx("sys/stat.h" HAVE_SYS_STAT_H)
-check_include_file_cxx("sys/types.h" HAVE_SYS_TYPES_H)
-check_include_file_cxx("unistd.h" HAVE_UNISTD_H)
-set(STDC_HEADERS 1) # HACK
-
-
 # FIXME: This is needed by the runtime not KLEE itself so we are testing the wrong
 # compiler.
 check_include_file("selinux/selinux.h" HAVE_SELINUX_SELINUX_H)

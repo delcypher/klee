@@ -19,9 +19,6 @@
 /* Define to 1 if you have the <gperftools/malloc_extension.h> header file. */
 #cmakedefine HAVE_GPERFTOOLS_MALLOC_EXTENSION_H @HAVE_GPERFTOOLS_MALLOC_EXTENSION_H@
 
-/* Define to 1 if you have the <inttypes.h> header file. */
-#cmakedefine HAVE_INTTYPES_H @HAVE_INTTYPES_H@
-
 /* Define if mallinfo() is available on this platform. */
 #cmakedefine HAVE_MALLINFO @HAVE_MALLINFO@
 
@@ -31,38 +28,14 @@
 /* Define to 1 if you have the `malloc_zone_statistics' function. */
 #cmakedefine HAVE_MALLOC_ZONE_STATISTICS @HAVE_MALLOC_ZONE_STATISTICS@
 
-/* Define to 1 if you have the <memory.h> header file. */
-#cmakedefine HAVE_MEMORY_H @HAVE_MEMORY_H@
-
 /* Define to 1 if you have the <selinux/selinux.h> header file. */
 #cmakedefine HAVE_SELINUX_SELINUX_H @HAVE_SELINUX_SELINUX_H@
-
-/* Define to 1 if you have the <stdint.h> header file. */
-#cmakedefine HAVE_STDINT_H @HAVE_STDINT_H@
-
-/* Define to 1 if you have the <stdlib.h> header file. */
-#cmakedefine HAVE_STDLIB_H @HAVE_STDLIB_H@
-
-/* Define to 1 if you have the <strings.h> header file. */
-#cmakedefine HAVE_STRINGS_H @HAVE_STRINGS_H@
-
-/* Define to 1 if you have the <string.h> header file. */
-#cmakedefine HAVE_STRING_H @HAVE_STRING_H@
 
 /* Define to 1 if you have the <sys/acl.h> header file. */
 #cmakedefine HAVE_SYS_ACL_H @HAVE_SYS_ACL_H@
 
 /* Define to 1 if you have the <sys/capability.h> header file. */
 #cmakedefine HAVE_SYS_CAPABILITY_H @HAVE_SYS_CAPABILITY_H@
-
-/* Define to 1 if you have the <sys/stat.h> header file. */
-#cmakedefine HAVE_SYS_STAT_H @HAVE_SYS_STAT_H@
-
-/* Define to 1 if you have the <sys/types.h> header file. */
-#cmakedefine HAVE_SYS_TYPES_H @HAVE_SYS_TYPES_H@
-
-/* Define to 1 if you have the <unistd.h> header file. */
-#cmakedefine HAVE_UNISTD_H @HAVE_UNISTD_H@
 
 /* Z3 needs a Z3_context passed to Z3_get_error_msg() */
 #cmakedefine HAVE_Z3_GET_ERROR_MSG_NEEDS_CONTEXT @HAVE_Z3_GET_ERROR_MSG_NEEDS_CONTEXT@
@@ -103,9 +76,6 @@
 
 /* Configuration for runtime libraries */
 #cmakedefine RUNTIME_CONFIGURATION @RUNTIME_CONFIGURATION@
-
-/* Define to 1 if you have the ANSI C header files. */
-#cmakedefine STDC_HEADERS @STDC_HEADERS@
 
 /* klee-uclibc is supported */
 #cmakedefine SUPPORT_KLEE_UCLIBC @SUPPORT_KLEE_UCLIBC@
