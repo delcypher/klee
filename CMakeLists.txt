@@ -629,9 +629,10 @@ option(ENABLE_TESTS "Enable tests" ON)
 
 if (ENABLE_TESTS)
   # Find lit
+  set(LIT_TOOL_NAMES "llvm-lit" "lit")
   find_program(
     LIT_TOOL
-    NAMES llvm-lit lit
+    NAMES ${LIT_TOOL_NAMES}
     HINTS "${LLVM_TOOLS_BINARY_DIR}"
     DOC "Path to lit tool"
   )
@@ -643,8 +644,15 @@ if (ENABLE_TESTS)
     "Lit arguments"
   )
 
-  if (NOT LIT_TOOL)
-    message(FATAL_ERROR "The lit tool is required for testing")
+if ((NOT LIT_TOOL) OR (NOT EXISTS "${LIT_TOOL}"))
+    message(FATAL_ERROR "The lit tool is required for testing."
+      " CMake tried to find lit with the following names \"${LIT_TOOL_NAMES}\""
+      " but it could not be found.\n"
+      "You should either disable testing by passing \"-DENABLE_TESTS=OFF\" to cmake"
+      " or you should install the lit tool from the Python Package Index by running"
+      " \"pip install lit\". Note \"pip\" requires root privileges to run. If you"
+      " don't have root privileges you can create a virtual python environment using"
+      " the \"virtualenv\" tool and run \"pip\" from there.")
   else()
     message(STATUS "Using lit: ${LIT_TOOL}")
   endif()
