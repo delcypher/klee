@@ -501,14 +501,8 @@ set_property(CACHE
   KLEE_RUNTIME_BUILD_TYPE
   PROPERTY STRINGS ${available_klee_runtime_build_types})
 message(STATUS "KLEE_RUNTIME_BUILD_TYPE: ${KLEE_RUNTIME_BUILD_TYPE}")
-set(RUNTIME_CONFIGURATION "\"${KLEE_RUNTIME_BUILD_TYPE}\"") # For config.h
 
-set(KLEE_INSTALL_RUNTIMR_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/klee/runtime")
-# FIXME: Move this into `config.h`
-list(APPEND KLEE_COMPONENT_CXX_DEFINES
-  -DKLEE_DIR=\"${CMAKE_BINARY_DIR}\"
-  -DKLEE_INSTALL_BIN_DIR=\"${CMAKE_INSTALL_FULL_BINDIR}\"
-  -DKLEE_INSTALL_RUNTIME_DIR=\"${KLEE_INSTALL_RUNTIMR_DIR}\")
+set(KLEE_INSTALL_RUNTIME_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/klee/runtime")
 
 # Location where KLEE will look for the built runtimes by default.
 set(KLEE_RUNTIME_DIRECTORY "${CMAKE_BINARY_DIR}/${KLEE_RUNTIME_BUILD_TYPE}/lib")
@@ -566,7 +560,7 @@ list(APPEND KLEE_COMPONENT_CXX_DEFINES
 # file rather than the symlink because CMake would just copy the symlink
 # rather than the file.
 install(FILES "${KLEE_UCLIBC_C_BCA}"
-  DESTINATION "${KLEE_INSTALL_RUNTIMR_DIR}"
+  DESTINATION "${KLEE_INSTALL_RUNTIME_DIR}"
   RENAME "${KLEE_UCLIBC_BCA_NAME}"
   )
 

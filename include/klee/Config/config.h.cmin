@@ -74,10 +74,22 @@
 /* Define to the version of this package. */
 #cmakedefine PACKAGE_VERSION @PACKAGE_VERSION@
 
-/* Configuration for runtime libraries */
-#cmakedefine RUNTIME_CONFIGURATION @RUNTIME_CONFIGURATION@
-
 /* klee-uclibc is supported */
 #cmakedefine SUPPORT_KLEE_UCLIBC @SUPPORT_KLEE_UCLIBC@
+
+/* Configuration type of KLEE's runtime libraries */
+#define RUNTIME_CONFIGURATION "@KLEE_RUNTIME_BUILD_TYPE@"
+
+/* FIXME: This is a stupid name. Also this is only used for figuring out where
+the runtime directory is in the build tree. Instead we should just define a
+macro for that. That would simplify the C++ code.  */
+/* Root of the KLEE binary build directory */
+#define KLEE_DIR "@CMAKE_BINARY_DIR@"
+
+/* Install directory for KLEE binaries */
+#define KLEE_INSTALL_BIN_DIR "@CMAKE_INSTALL_FULL_BINDIR@"
+
+/* Install directory for KLEE runtime */
+#define KLEE_INSTALL_RUNTIME_DIR "@KLEE_INSTALL_RUNTIME_DIR@"
 
 #endif
