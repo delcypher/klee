@@ -177,14 +177,6 @@ endif()
 list(APPEND KLEE_COMPONENT_CXX_DEFINES ${LLVM_DEFINITIONS})
 list(APPEND KLEE_COMPONENT_EXTRA_INCLUDE_DIRS ${LLVM_INCLUDE_DIRS})
 
-# FIXME: This doesn't look like it's being used.
-# For config.h.
-if ("${LLVM_PACKAGE_VERSION}" MATCHES "svn$")
-  set(LLVM_IS_RELEASE 0)
-else()
-  set(LLVM_IS_RELEASE 1)
-endif()
-
 # Find llvm-link
 set(LLVM_LINK "${LLVM_TOOLS_BINARY_DIR}/llvm-link")
 if (NOT EXISTS "${LLVM_LINK}")

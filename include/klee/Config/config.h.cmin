@@ -77,9 +77,6 @@
    context parameters. */
 #cmakedefine KLEE_SELINUX_CTX_CONST @KLEE_SELINUX_CTX_CONST@
 
-/* LLVM version is release (instead of development) */
-#cmakedefine LLVM_IS_RELEASE @LLVM_IS_RELEASE@
-
 /* LLVM major version number */
 #cmakedefine LLVM_VERSION_MAJOR @LLVM_VERSION_MAJOR@
 
