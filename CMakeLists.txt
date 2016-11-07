@@ -25,6 +25,11 @@ if (POLICY CMP0054)
   cmake_policy(SET CMP0054 OLD)
 endif()
 
+if (POLICY CMP0042)
+  # Enable `MACOSX_RPATH` by default.
+  cmake_policy(SET CMP0042 NEW)
+endif()
+
 # This overrides the default flags for the different CMAKE_BUILD_TYPEs
 set(CMAKE_USER_MAKE_RULES_OVERRIDE_C
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/c_flags_override.cmake")
